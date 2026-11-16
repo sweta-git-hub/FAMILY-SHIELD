@@ -5,8 +5,8 @@
 | Phase | Name | Branch | Goal | Status | Built | Left off | Decisions |
 |---|---|---|---|---|---|---|---|
 | 0 | Bootstrap & Docs | `phase/00-bootstrap` | Monorepo scaffold, docs skeleton, lint setup | DONE | Repo layout, docs/00-08, RULE.md, HANDOFF.md, README.md, pyproject.toml | CI lint hooks | ADR-001, ADR-002, ADR-003, ADR-004, ADR-005 |
-| 1 | Crypto Core | `phase/01-crypto-core` | TOTP, HKDF, words, lockout, duress in Python & Dart | TODO | - | Awaiting G1 permission | ADR-004, ADR-005 |
-| 2 | Pairing & Storage | `phase/02-pairing` | QR pairing, Keystore/Keychain, offline sync | TODO | - | - | - |
+| 1 | Crypto Core | `phase/01-crypto-core` | TOTP, HKDF, words, lockout, duress in Python & Dart | DONE | core/crypto.py, core/crypto.dart, core/wordlist.py, tests/test_crypto.py | Cross-language runner | ADR-004, ADR-005 |
+| 2 | Pairing & Storage | `phase/02-pairing` | QR pairing, Keystore/Keychain, offline sync | TODO | - | Awaiting G1 permission | - |
 | 3 | Verify-Caller UX | `phase/03-verify-flow` | Big buttons, Hindi/English TTS, practice call | TODO | - | - | - |
 | 4 | Backend Stream | `phase/04-backend-stream` | FastAPI, WebSocket audio stream, chunker | TODO | - | - | - |
 | 5 | Scam Engine | `phase/05-scam-engine` | STT wrapper, lexicon, noisy-OR classifier | TODO | - | - | - |

@@ -13,3 +13,10 @@
 - **Decision**: ADR-004 (6 digits and 2-word phonetic lexicon), ADR-005 (HKDF-SHA256 directional key derivation).
 - **Tests**: Directory tree verified; all Phase 0 files verified.
 - **Left off / next**: Phase 0 complete. Awaiting user Gate G1 permission to start Phase 1.
+
+### p1-core | feat: implement pure-function crypto core, wordlist, and tests | phase/01-crypto-core
+- **Built**: `core/crypto.py`, `core/crypto.dart`, `core/wordlist.py`, `tests/fixtures/crypto_test_vectors.json`, and `tests/test_crypto.py`.
+- **Why**: Provide the offline zero-knowledge cryptographic identity layer (HOTP RFC 4226, TOTP RFC 6238, HKDF directional keys, 2048-word phonetic encoding, lockout state machine, and duress detection).
+- **Decision**: ADR-004, ADR-005.
+- **Tests**: 9 test suites covering RFC 4226 vectors, RFC 6238 vectors, HKDF directional keys, duress keys, 2-word phonetic encoding/decoding, clock-skew verification windows, 3-strike fail-closed lockout, and 1,000 deterministic parity vectors (`python -m unittest discover tests`). Result: 9/9 passed in 0.077s.
+- **Left off / next**: Phase 1 complete. Awaiting user Gate G1 permission to start Phase 2 (Pairing & Secure Storage).

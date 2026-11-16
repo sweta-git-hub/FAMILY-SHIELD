@@ -1,0 +1,43 @@
+{
+  "rfc4226_hotp": {
+    "key_ascii": "12345678901234567890",
+    "key_hex": "3132333435363738393031323334353637383930",
+    "vectors": [
+      {"counter": 0, "hotp": "755224"},
+      {"counter": 1, "hotp": "287082"},
+      {"counter": 2, "hotp": "359152"},
+      {"counter": 3, "hotp": "969429"},
+      {"counter": 4, "hotp": "338314"},
+      {"counter": 5, "hotp": "254676"},
+      {"counter": 6, "hotp": "287922"},
+      {"counter": 7, "hotp": "162583"},
+      {"counter": 8, "hotp": "399871"},
+      {"counter": 9, "hotp": "520489"}
+    ]
+  },
+  "rfc6238_totp_sha1": {
+    "key_ascii": "12345678901234567890",
+    "step_seconds": 30,
+    "t0": 0,
+    "vectors": [
+      {"time": 59, "totp_6": "287082", "totp_8": "94287082"},
+      {"time": 1111111109, "totp_6": "081804", "totp_8": "07081804"},
+      {"time": 1111111111, "totp_6": "050471", "totp_8": "14050471"},
+      {"time": 1234567890, "totp_6": "005924", "totp_8": "89005924"},
+      {"time": 2000000000, "totp_6": "279037", "totp_8": "69279037"},
+      {"time": 20000000000, "totp_6": "353130", "totp_8": "65353130"}
+    ]
+  },
+  "directional_hkdf": {
+    "k_pair_hex": "000102030405060708090a0b0c0d0e0f10111213",
+    "info_a_to_b": "FVS1|A->B",
+    "info_b_to_a": "FVS1|B->A",
+    "info_duress": "FVS1|DURESS"
+  },
+  "word_encoding": [
+    {"bin": 0, "words": ["abandon", "abandon"]},
+    {"bin": 2047, "words": ["zoo", "abandon"]},
+    {"bin": 2048, "words": ["abandon", "ability"]},
+    {"bin": 4194303, "words": ["zoo", "zoo"]}
+  ]
+}
