@@ -107,6 +107,16 @@
 - **Tests**: Validated Dockerfile syntax and docker-compose configuration format.
 - **Next**: Implement mobile/Python audio streaming client and replay test utility in Commit 6.
 
+### p4-clients | feat(client): implement audio streaming client and replay test utility | phase/04-backend-stream
+- **Built**:
+  - `server/client_replay.py`: Python CLI test utility for simulated or real WAV audio streaming, measuring round-trip score latency, frame counting, and connection teardown.
+  - `mobile/audio_stream_client.dart`: Flutter/Dart audio stream client mirroring WebSocket protocol, binary PCM frame transmission, and typed `RiskScoreMessage` parsing.
+- **Why**: Provide automated verification tools to stream speech audio over WebSockets and measure round-trip latency.
+- **Decision**: 100ms packet pacing emulates live microphone buffer callbacks on mobile and web clients.
+- **Tests**: Replay client structure and Dart client syntax verified against API contract.
+- **Next**: Add comprehensive integration tests for server streaming and error cases in Commit 7.
+
+
 
 
 
