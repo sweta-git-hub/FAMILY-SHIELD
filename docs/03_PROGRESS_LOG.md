@@ -77,6 +77,16 @@
 - **Tests**: 6 unit tests in `tests/test_session.py`.
 - **Next**: Implement audio chunker and in-memory ring buffer in Commit 3.
 
+### p4-chunker | feat(server): implement PCM audio chunker with in-memory ring buffer | phase/04-backend-stream
+- **Built**:
+  - `server/chunker.py`: `AudioChunker` circular in-memory PCM ring buffer (16 kHz 16-bit mono) and `SimpleEnergyVAD` hook for speech presence and RMS calculation.
+  - `tests/test_chunker.py`: 9 unit tests covering 3.0s chunk sizing, 1.0s sliding stride, incremental 100ms packet feeding, silence/speech VAD classification, buffer overflow eviction, and state reset.
+- **Why**: Deliver clean, segmented 3-second audio windows to the ML pipeline without any disk writes (strictly transient in RAM).
+- **Decision**: 3.0s window with 1.0s hop provides optimal overlap for acoustic anti-spoofing and Whisper STT stability.
+- **Tests**: 9 unit tests in `tests/test_chunker.py`.
+- **Next**: Implement WebSocket streaming endpoint with mock scorer in Commit 4.
+
+
 
 
 
