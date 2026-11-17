@@ -137,6 +137,62 @@
 - **Tests**: Verified cross-reference link integrity and command accuracy.
 - **Left off / next**: Phase 4 complete across all 8 planned commits. Awaiting Gate G2 / developer review to merge and begin Phase 5.
 
+### p5-lexicon | feat(ml): implement bilingual scam lexicon and category taxonomy | phase/05-scam-engine
+- **Built**:
+  - `ml/scam_lexicon.py`: Taxonomy with 6 core scam categories (`authority`, `secrecy`, `financial`, `distress`, `urgency`, `device_excuse`).
+  - Regex patterns covering English, Hindi (Devanagari), and Hinglish (Romanized Hindi).
+  - Categorized priors $p_i$ and trigger extraction engine.
+- **Why**: Provide rule-based, low-latency semantic extraction of high-threat social engineering tactics in family calls.
+- **Decision**: Cover both formal Devanagari script and informal colloquial Romanized Hinglish.
+- **Tests**: Unit tests for pattern detection in `tests/test_scam_engine.py`.
+- **Next**: Implement probabilistic Noisy-OR Bayesian classifier in Commit 2.
+
+### p5-classifier | feat(ml): implement probabilistic noisy-or scam intent classifier | phase/05-scam-engine
+- **Built**:
+  - `ml/scam_classifier.py`: `NoisyOrScamClassifier` implementing causal Bayesian Noisy-OR formulation.
+  - Computes calibrated semantic score $s_t \in [0.0, 1.0]$ with monotonic escalation on compound threat indicators.
+- **Why**: Accurately quantify confidence that an ongoing call represents a social engineering scam without fragile hardcoded boolean thresholds.
+- **Decision**: Background leak probability $p_0 = 0.05$ accounts for baseline false positive rate in benign casual chatter.
+- **Tests**: Mathematical boundary tests, single-category testing, and multi-cue monotonic escalation tests.
+- **Next**: Implement in-memory STT wrapper in Commit 3.
+
+### p5-stt | feat(ml): implement speech-to-text engine wrapper with graceful fallbacks | phase/05-scam-engine
+- **Built**:
+  - `ml/stt_engine.py`: `BaseSTTEngine` protocol, `FasterWhisperSTTEngine` (in-memory CTranslate2 INT8 model), and `MockSTTEngine` for zero-download test execution.
+- **Why**: Transcribe 16 kHz PCM audio chunks transiently in memory without violating Rule 7 zero-disk persistence guarantees.
+- **Decision**: Use `io.BytesIO` in-memory WAV buffers so no raw audio or transcripts ever touch storage.
+- **Tests**: Simulated PCM transcription and timestamping unit tests.
+- **Next**: Integrate semantic classifier and STT with streaming WebSocket pipeline in Commit 4.
+
+### p5-server | feat(server): integrate semantic scam scoring into streaming server pipeline | phase/05-scam-engine
+- **Built**:
+  - `server/scorer.py`: `StreamScorer` replacing dummy mock $s_t$ with active ML semantic classification.
+  - `server/stream.py`: Connected `StreamScorer` to WebSocket chunk processing loop.
+- **Why**: Transition backend streaming from mock responses to live AI semantic analysis.
+- **Decision**: In Phase 5, semantic score $s_t$ actively drives risk tiers, while $s_a$ remains mock pending Phase 6 AASIST integration.
+- **Tests**: StreamScorer evaluation with simulated speech chunks and context flags.
+- **Next**: Add comprehensive unit and integration test suite in Commit 5.
+
+### p5-tests | test(ml): add comprehensive test suite for lexicon, classifier, and STT | phase/05-scam-engine
+- **Built**:
+  - `tests/test_scam_engine.py`: 13 test cases covering multilingual lexicon matching, Noisy-OR math, STT engine, and stream scorer integration.
+- **Why**: Ensure 100% test coverage and strict contract conformance across Phase 5 components.
+- **Decision**: Include realistic Hindi, English, and Hinglish scam and benign transcripts.
+- **Tests**: Ran all 68 tests across entire repo (`Ran 68 tests in 0.140s, OK`).
+- **Next**: Synchronize documentation across architecture, progress log, runbook, data & models, and handoff in Commit 6.
+
+### p5-docs | docs(phase-5): update architecture, progress log, runbook, and handoff | phase/05-scam-engine
+- **Built**:
+  - `docs/01_ARCHITECTURE.md`: Documented Section 4 (Semantic Scam-Phrase Engine, Noisy-OR math, STT architecture).
+  - `docs/02_PHASE_PLAN.md`: Marked Phase 5 as DONE.
+  - `docs/08_DATA_AND_MODELS.md`: Documented taxonomy table, priors, and Noisy-OR equations.
+  - `docs/03_PROGRESS_LOG.md`: Appended entries for Commits 1-6.
+  - `HANDOFF.md`: Updated to Phase 5 DONE, Phase 6 TODO.
+- **Why**: Complete documentation synchronization for newly implemented scam engine.
+- **Decision**: Keep documentation detailed and actionable for next phase.
+- **Tests**: Verified test suite passes and docs consistency.
+- **Left off / next**: Phase 5 complete. Awaiting user instruction before pushing to GitHub.
+
 
 
 
