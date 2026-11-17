@@ -28,3 +28,22 @@
 - **Tests**: Documentation and plan consistency verified.
 - **Next**: Implement `core/phone_util.py` for E.164 normalization and contact structures.
 
+### p2-pairing-core | feat: contact pairing, directional keys, and encrypted vault | phase/02-pairing
+- **Built**:
+  - `core/phone_util.py`: E.164 phone normalization, validation, and `ContactProfile` schema.
+  - `core/pairing.py`: Zero-knowledge invitation token handshake, HKDF directional key derivation, 60s TOTP code synchronization, remaining-time ticker, and lockout integration.
+  - `core/storage.py`: `SecureVault` with PBKDF2-HMAC-SHA256 key derivation, HMAC tamper integrity tag, and revocation.
+  - `tests/test_pairing.py` & `tests/test_storage.py`: 15 comprehensive unit tests covering E.164 parsing, pairing exchange, 60s code agreement, directional isolation ($A \to B \neq B \to A$), 3-strike lockout, and vault tampering.
+- **Why**: Satisfy Phase 2 requirements per ADR-006 and user request for contact-based pairing and 60-second code rotation.
+- **Decision**: ADR-006; 60s code rotation window.
+- **Tests**: `python -m unittest discover tests` -> 24 tests passed in 0.128s.
+- **Next**: Build interactive dual-phone web simulator in `demo/web_simulator.py`.
+
+### p2-simulator | feat: interactive dual-phone web simulator with live 60s codes | phase/02-pairing
+- **Built**: `demo/web_simulator.py` (dependency-free Python HTTP server + HTML5/JS dual-phone visual mockup).
+- **Why**: Enable instant local testing and visual verification of pairing and 60s synchronized codes.
+- **Decision**: Zero-dependency standard library implementation for universal cross-platform compatibility.
+- **Tests**: Tested status and verify API endpoints; 24 unit tests pass 100%.
+- **Left off / next**: Phase 2 complete. Awaiting Gate G1 permission for Phase 3 (Verify-Caller UX).
+
+
