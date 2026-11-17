@@ -20,6 +20,7 @@ except ImportError:
 from server.config import ServerConfig, load_config
 from server.logger import get_logger, log_event, setup_logging
 from server.session import SessionManager, router as session_router
+from server.stream import router as stream_router
 
 logger = get_logger("main")
 
@@ -66,6 +67,8 @@ def create_app(config: ServerConfig | None = None) -> Any:
     # Include routers
     if session_router:
         app.include_router(session_router)
+    if stream_router:
+        app.include_router(stream_router)
 
     @app.get("/v1/health", status_code=status.HTTP_200_OK)
     async def health_check() -> Dict[str, Any]:

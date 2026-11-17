@@ -86,6 +86,18 @@
 - **Tests**: 9 unit tests in `tests/test_chunker.py`.
 - **Next**: Implement WebSocket streaming endpoint with mock scorer in Commit 4.
 
+### p4-stream | feat(server): implement WebSocket stream endpoint with dummy mock scorer | phase/04-backend-stream
+- **Built**:
+  - `server/scorer.py`: `MockScorer` and `RiskScore` returning contract-compliant score frames (`tier`, `risk`, `s_a`, `s_t`, `s_c`, `reasons`, `prompt`), explicitly marked `mock=True` per Rule 0.5.
+  - `server/stream.py`: Bidirectional WebSocket endpoint `/v1/stream?token=...` with token authentication, binary PCM streaming, JSON control message handling (`start`, `context`, `end`), and real-time score pushes.
+  - `server/main.py`: Registered stream router.
+  - `tests/test_scorer.py`: Unit tests validating schema compliance, silence handling, and context risk calculation.
+- **Why**: Deliver end-to-end real-time audio ingest and feedback protocol per docs/07.
+- **Decision**: Reject unauthenticated WebSocket connections with close code 4001; return clean score feedback per chunk.
+- **Tests**: 3 unit tests in `tests/test_scorer.py`.
+- **Next**: Implement Dockerfile and docker-compose for containerized execution in Commit 5.
+
+
 
 
 
