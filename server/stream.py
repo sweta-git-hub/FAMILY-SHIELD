@@ -18,7 +18,7 @@ except ImportError:
 
 from server.chunker import AudioChunker
 from server.logger import get_logger, log_event
-from server.scorer import MockScorer
+from server.scorer import StreamScorer
 from server.session import SessionManager
 
 logger = get_logger("stream")
@@ -56,7 +56,7 @@ if _HAS_FASTAPI:
             chunk_duration_sec=cfg.chunk_duration_sec,
             chunk_stride_sec=cfg.chunk_stride_sec,
         )
-        scorer = MockScorer()
+        scorer = StreamScorer()
         call_context: Dict[str, Any] = {}
 
         try:
