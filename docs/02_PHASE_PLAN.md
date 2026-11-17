@@ -7,7 +7,7 @@
 | 0 | Bootstrap & Docs | `phase/00-bootstrap` | Monorepo scaffold, docs skeleton, lint setup | DONE | Repo layout, docs/00-08, RULE.md, HANDOFF.md, README.md, pyproject.toml | CI lint hooks | ADR-001, ADR-002, ADR-003, ADR-004, ADR-005 |
 | 1 | Crypto Core | `phase/01-crypto-core` | TOTP, HKDF, words, lockout, duress in Python & Dart | DONE | core/crypto.py, core/crypto.dart, core/wordlist.py, tests/test_crypto.py | Cross-language runner | ADR-004, ADR-005 |
 | 2 | Pairing & Storage | `phase/02-pairing` | Contact/phone pairing, secure vault, live 60s 6-digit sync | DONE | core/phone_util.py, core/pairing.py, core/storage.py, demo/web_simulator.py, tests/test_pairing.py, tests/test_storage.py | Ready for Phase 3 | ADR-006 |
-| 3 | Verify-Caller UX | `phase/03-verify-flow` | Big buttons, Hindi/English TTS, practice call | TODO | - | - | - |
+| 3 | Verify-Caller UX | `phase/03-verify-flow` | Big buttons, Hindi/English TTS, practice call | DONE | core/elderly_ux.py, tests/test_elderly_ux.py, demo/web_simulator.py | Ready for Phase 4 | - |
 | 4 | Backend Stream | `phase/04-backend-stream` | FastAPI, WebSocket audio stream, chunker | TODO | - | - | - |
 | 5 | Scam Engine | `phase/05-scam-engine` | STT wrapper, lexicon, noisy-OR classifier | TODO | - | - | - |
 | 6 | Anti-Spoof | `phase/06-antispoof` | Telephony simulator, ONNX model inference | TODO | - | - | - |
@@ -67,4 +67,26 @@
   - Directional keys prevent reverse-impersonation ($A \to B \neq B \to A$).
   - Storage vault fails closed on missing/corrupted keys.
   - 100% automated test pass rate.
+
+### Phase 3: Verify-Caller Flow and Elderly Accessibility UX
+- **Branch**: `phase/03-verify-flow`
+- **Time-box**: 2.5 h
+- **In scope**:
+  - Elderly-friendly large tactile keypad with oversized 24px+ digit entry and haptic/visual feedback.
+  - High-contrast accessibility theme (minimum 7:1 WCAG contrast ratio for low-vision seniors).
+  - Bilingual spoken audio prompts in English and Hindi (TTS for prompt, verification, warning, lockout).
+  - Safe emergency actions: "Hang Up & Call Back" (`tel:` link to known verified contact) and "Notify Family" emergency broadcast.
+  - Practice Call Mode ("अभ्यास कॉल मोड"): zero-risk training simulator allowing seniors to practice without lockout anxiety.
+  - Core UX logic module in `core/elderly_ux.py`.
+  - Comprehensive unit test suite in `tests/test_elderly_ux.py`.
+  - Interactive simulator enhancement in `demo/web_simulator.py`.
+- **Out of scope**:
+  - Live Whisper STT streaming and ML anti-spoofing (Phases 4-6).
+- **Acceptance criteria**:
+  - Challenge verification completes in under 15 seconds.
+  - Bilingual voice prompts work in both English and Hindi.
+  - Practice mode runs isolated from actual live lockout counters.
+  - Emergency callback button dials the true saved number.
+  - 100% automated test pass rate.
+
 
