@@ -97,6 +97,17 @@
 - **Tests**: 3 unit tests in `tests/test_scorer.py`.
 - **Next**: Implement Dockerfile and docker-compose for containerized execution in Commit 5.
 
+### p4-infra | feat(infra): add Dockerfile and docker-compose for backend server | phase/04-backend-stream
+- **Built**:
+  - `server/requirements.txt`: Specified versions for FastAPI, Uvicorn, WebSockets, Python-Dotenv, and HTTPX.
+  - `infra/Dockerfile`: Multi-stage Python 3.11-slim container with non-root security user (`fvsuser`) and automated healthcheck.
+  - `infra/docker-compose.yml`: Local orchestrator service definition with resource limits and streaming environment variables.
+- **Why**: Enable reproducible containerized execution and deployment for testing and hackathon demo evaluation.
+- **Decision**: Base on `python:3.11-slim` with dedicated non-root user and automated `/v1/health` container healthcheck.
+- **Tests**: Validated Dockerfile syntax and docker-compose configuration format.
+- **Next**: Implement mobile/Python audio streaming client and replay test utility in Commit 6.
+
+
 
 
 
