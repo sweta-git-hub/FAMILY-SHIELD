@@ -3,47 +3,111 @@
 ## Environment Requirements
 - Python 3.10+
 - (Later phases) Flutter 3.x / Dart 3.x
+- Docker 24+ & Docker Compose (optional for containerized runs)
 
-## Automated Test Suite (Phases 1, 2 & 3)
-Run all 31 unit and parity tests:
+---
+
+## 1. Automated Unit & Integration Tests
+
+Run the complete test suite (crypto, pairing, storage, UX, chunker, session, scorer, and streaming endpoints):
 ```bash
 python -m unittest discover tests
 ```
 
 Expected output:
 ```
-Ran 31 tests in ~0.13s
+Ran 55 tests in ~0.35s
 OK
 ```
 
-All 31 test suites verify:
-1. RFC 4226 HOTP compliance (counter 0 through 9).
-2. RFC 6238 TOTP compliance (SHA-1, 6-digit and 8-digit modes).
-3. HKDF-SHA256 directional derivation ($K_{A \to B} \neq K_{B \to A}$).
-4. Duress key derivation ($K_{duress} \neq K_{dir}$).
-5. 2,048-word BIP-39 phonetic encoding and 22-bit round-trip.
-6. Verification window handling ($\Delta t \in \{-1, 0, +1\}$).
-7. Fail-closed lockout state machine (3 invalid attempts lock out session).
-8. Covert duress detection without locking.
-9. 1,000 deterministic parity vectors across random keys and timestamps.
-10. E.164 phone number normalization (domestic, international, invalid cases).
-11. Contact profile creation and validation.
-12. Zero-knowledge pairing invitation creation and acceptance.
-13. Acceptance mismatch rejection (wrong recipient phone fails).
-14. Synchronized 60-second 6-digit TOTP code agreement between Guardian and Member.
-15. Directional isolation security (Rahul's code to Mom != Mom's code to Rahul).
-16. 3-strike fail-closed lockout during incoming code verification.
-17. Local vault storage, retrieval, peer-phone lookup, and revocation.
-18. PBKDF2/HMAC encrypted vault export and import.
-19. Tamper detection failure (tampered vault fails closed).
-20. Bilingual voice prompt catalog completeness in English and Hindi.
-21. Spoken prompt language switching.
-22. High-contrast accessibility toggle state.
-23. Emergency callback action URI generation (`tel:` link).
-24. Family SOS emergency broadcast mock structure.
-25. Practice call session evaluation and isolation from live lockout state.
+### Test Suite Inventory:
+1. `tests/test_crypto.py` (9 tests): RFC 4226 HOTP, RFC 6238 TOTP, HKDF directional keys, duress derivation, BIP-39 phonetic codec, skew window, 3-strike lockout, 1000 parity vectors.
+2. `tests/test_pairing.py` (6 tests): E.164 phone normalization, zero-knowledge invite handshake, peer mismatch rejection, 60s TOTP synchronization, directional isolation ($A \to B \neq B \to A$), and lockout integration.
+3. `tests/test_storage.py` (9 tests): `SecureVault` operations, peer phone lookup, revocation, PBKDF2/HMAC export/import, tamper detection fail-closed.
+4. `tests/test_elderly_ux.py` (7 tests): Bilingual prompt catalog (EN/HI), language toggle, accessibility contrast, emergency callback URI, family SOS broadcast, isolated practice mode.
+5. `tests/test_session.py` (6 tests): Ephemeral session creation, token validation, activation, TTL expiration, closure, and capacity throttling.
+6. `tests/test_chunker.py` (9 tests): 16 kHz 16-bit PCM chunk sizing (3.0s = 96,000 bytes), sliding stride (1.0s = 32,000 bytes), 100ms packet feeding, SimpleEnergyVAD silence vs speech classification, ring buffer overflow eviction, and buffer reset.
+7. `tests/test_scorer.py` (3 tests): `MockScorer` contract compliance, silence GREEN tier classification, call context risk elevation (`unknown_number` + `claims_relative`).
+8. `tests/test_backend_stream.py` (6 tests): `GET /v1/health`, `POST /v1/session`, WebSocket unauthorized rejection (close code 4001), WebSocket handshake (`start` $\to$ `ready`), live PCM streaming, score pushes, clean teardown (`end`), client reconnect, and replay statistics.
 
-## Interactive Dual-Device Web Simulator (Phases 2 & 3 Demo)
+---
+
+## 2. Running the Audio Streaming Server (Phase 4)
+
+### 2.1 Local Python Process
+Install dependencies:
+```bash
+pip install -r server/requirements.txt
+```
+
+Launch the FastAPI streaming server:
+```bash
+uvicorn server.main:app --host 0.0.0.0 --port 8000 --reload
+```
+
+Verify health check:
+```bash
+curl http://localhost:8000/v1/health
+```
+
+Expected JSON response:
+```json
+{
+  "status": "ok",
+  "service": "family-voice-shield",
+  "version": "0.4.0",
+  "sample_rate": 16000,
+  "channels": 1,
+  "chunk_duration_sec": 3.0,
+  "active_sessions": 0
+}
+```
+
+### 2.2 Docker Container
+Build and start the streaming server container:
+```bash
+docker compose -f infra/docker-compose.yml up --build -d
+```
+
+View container logs:
+```bash
+docker compose -f infra/docker-compose.yml logs -f
+```
+
+Stop container:
+```bash
+docker compose -f infra/docker-compose.yml down
+```
+
+---
+
+## 3. Replay Test Client (Simulated Microphone Audio)
+
+Stream synthetic or real audio into the running server to measure round-trip score latency:
+```bash
+python server/client_replay.py --host localhost --port 8000 --duration 10.0
+```
+
+Or stream a custom 16 kHz mono WAV file:
+```bash
+python server/client_replay.py --host localhost --port 8000 --file path/to/sample.wav
+```
+
+Expected output:
+```
+[*] Starting audio streaming client connecting to localhost:8000...
+[+] Stream Complete for session: e1a2b3c4-d5e6-7f8a-9b0c-1d2e3f4a5b6c
+    Frames Sent:     100 (320000 bytes)
+    Scores Received: 8
+    Avg Latency:     14.2 ms
+    Min/Max Latency: 8.5 ms / 24.1 ms
+    Final Tier:      GREEN (Risk: 0.16)
+```
+
+---
+
+## 4. Interactive Dual-Device Web Simulator (Phases 2 & 3 Demo)
+
 Launch the side-by-side interactive simulator in your browser:
 ```bash
 python demo/web_simulator.py 8080
@@ -56,5 +120,8 @@ Open `http://localhost:8080/` in any browser:
 - **Emergency Action**: Test "Hang Up & Call Back" to break virtual kidnapping.
 - **Practice Mode**: Click "Practice Call Mode" for an isolated training simulation.
 
-## Resetting State
-Vault records and sessions can be reset via the simulator UI ("Reset Strikes") or by re-instantiating fresh in-memory `SecureVault` instances.
+---
+
+## 5. Resetting State
+- **Server sessions**: Automatically expire in memory after TTL; restart server or send `{"type": "end"}` to terminate immediately.
+- **Client Vault**: Vault records and strike counters can be reset via the simulator UI ("Reset Strikes") or by re-instantiating fresh in-memory `SecureVault` instances.

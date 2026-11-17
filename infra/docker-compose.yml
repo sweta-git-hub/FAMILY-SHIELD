@@ -1,0 +1,30 @@
+version: "3.8"
+
+services:
+  streaming-server:
+    build:
+      context: ..
+      dockerfile: infra/Dockerfile
+    container_name: fvs-streaming-server
+    ports:
+      - "8000:8000"
+    environment:
+      - FVS_HOST=0.0.0.0
+      - FVS_PORT=8000
+      - FVS_SAMPLE_RATE=16000
+      - FVS_CHANNELS=1
+      - FVS_CHUNK_DURATION_SEC=3.0
+      - FVS_CHUNK_STRIDE_SEC=1.0
+      - FVS_SESSION_TTL_SEC=3600
+      - FVS_LOG_LEVEL=INFO
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/v1/health').read()\""]
+      interval: 15s
+      timeout: 3s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 1024M

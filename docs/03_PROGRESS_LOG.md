@@ -56,5 +56,94 @@
 - **Tests**: `python -m unittest discover tests` -> 31 tests passed in 0.128s.
 - **Left off / next**: Phase 3 complete. Awaiting Gate G1 permission for Phase 4 (Backend Audio Stream).
 
+### p4-scaffold | feat(server): scaffold FastAPI app with health check and config loader | phase/04-backend-stream
+- **Built**:
+  - `server/__init__.py`: Package init marking service version 0.4.0.
+  - `server/config.py`: Environment-driven configuration loader (`ServerConfig`) with audio parameters (16 kHz, 16-bit PCM, 3.0s chunk, 1.0s stride).
+  - `server/logger.py`: Structured JSON logger enforcing Rule 7 privacy (automatic stripping of raw audio, transcripts, and secrets).
+  - `server/main.py`: FastAPI server entrypoint with CORS, lifespan logging, and `GET /v1/health` endpoint.
+- **Why**: Establish foundational ASGI web service skeleton for Phase 4 real-time audio ingestion.
+- **Decision**: Use 16 kHz 16-bit mono PCM as canonical streaming format matching Whisper/AASIST expectations.
+- **Tests**: Validated configuration calculation properties (frame_bytes=3200, chunk_bytes=96000, stride_bytes=32000).
+- **Next**: Implement transient session token endpoint (`POST /v1/session`) and session manager in Commit 2.
+
+### p4-session | feat(server): implement transient session token endpoint | phase/04-backend-stream
+- **Built**:
+  - `server/session.py`: In-memory `SessionManager` and `SessionRecord` data structure with automated TTL expiration, capacity limits, and `POST /v1/session` endpoint.
+  - `server/main.py`: Integrated `SessionManager` into application state and included session router.
+  - `tests/test_session.py`: 6 unit tests covering session generation, token validation, expiration, activation, closure, and capacity throttling.
+- **Why**: Satisfy Phase 4 requirement for ephemeral session token issuance prior to WebSocket connection.
+- **Decision**: Zero persistence; sessions exist strictly in memory with automatic expiration to prevent resource exhaustion.
+- **Tests**: 6 unit tests in `tests/test_session.py`.
+- **Next**: Implement audio chunker and in-memory ring buffer in Commit 3.
+
+### p4-chunker | feat(server): implement PCM audio chunker with in-memory ring buffer | phase/04-backend-stream
+- **Built**:
+  - `server/chunker.py`: `AudioChunker` circular in-memory PCM ring buffer (16 kHz 16-bit mono) and `SimpleEnergyVAD` hook for speech presence and RMS calculation.
+  - `tests/test_chunker.py`: 9 unit tests covering 3.0s chunk sizing, 1.0s sliding stride, incremental 100ms packet feeding, silence/speech VAD classification, buffer overflow eviction, and state reset.
+- **Why**: Deliver clean, segmented 3-second audio windows to the ML pipeline without any disk writes (strictly transient in RAM).
+- **Decision**: 3.0s window with 1.0s hop provides optimal overlap for acoustic anti-spoofing and Whisper STT stability.
+- **Tests**: 9 unit tests in `tests/test_chunker.py`.
+- **Next**: Implement WebSocket streaming endpoint with mock scorer in Commit 4.
+
+### p4-stream | feat(server): implement WebSocket stream endpoint with dummy mock scorer | phase/04-backend-stream
+- **Built**:
+  - `server/scorer.py`: `MockScorer` and `RiskScore` returning contract-compliant score frames (`tier`, `risk`, `s_a`, `s_t`, `s_c`, `reasons`, `prompt`), explicitly marked `mock=True` per Rule 0.5.
+  - `server/stream.py`: Bidirectional WebSocket endpoint `/v1/stream?token=...` with token authentication, binary PCM streaming, JSON control message handling (`start`, `context`, `end`), and real-time score pushes.
+  - `server/main.py`: Registered stream router.
+  - `tests/test_scorer.py`: Unit tests validating schema compliance, silence handling, and context risk calculation.
+- **Why**: Deliver end-to-end real-time audio ingest and feedback protocol per docs/07.
+- **Decision**: Reject unauthenticated WebSocket connections with close code 4001; return clean score feedback per chunk.
+- **Tests**: 3 unit tests in `tests/test_scorer.py`.
+- **Next**: Implement Dockerfile and docker-compose for containerized execution in Commit 5.
+
+### p4-infra | feat(infra): add Dockerfile and docker-compose for backend server | phase/04-backend-stream
+- **Built**:
+  - `server/requirements.txt`: Specified versions for FastAPI, Uvicorn, WebSockets, Python-Dotenv, and HTTPX.
+  - `infra/Dockerfile`: Multi-stage Python 3.11-slim container with non-root security user (`fvsuser`) and automated healthcheck.
+  - `infra/docker-compose.yml`: Local orchestrator service definition with resource limits and streaming environment variables.
+- **Why**: Enable reproducible containerized execution and deployment for testing and hackathon demo evaluation.
+- **Decision**: Base on `python:3.11-slim` with dedicated non-root user and automated `/v1/health` container healthcheck.
+- **Tests**: Validated Dockerfile syntax and docker-compose configuration format.
+- **Next**: Implement mobile/Python audio streaming client and replay test utility in Commit 6.
+
+### p4-clients | feat(client): implement audio streaming client and replay test utility | phase/04-backend-stream
+- **Built**:
+  - `server/client_replay.py`: Python CLI test utility for simulated or real WAV audio streaming, measuring round-trip score latency, frame counting, and connection teardown.
+  - `mobile/audio_stream_client.dart`: Flutter/Dart audio stream client mirroring WebSocket protocol, binary PCM frame transmission, and typed `RiskScoreMessage` parsing.
+- **Why**: Provide automated verification tools to stream speech audio over WebSockets and measure round-trip latency.
+- **Decision**: 100ms packet pacing emulates live microphone buffer callbacks on mobile and web clients.
+- **Tests**: Replay client structure and Dart client syntax verified against API contract.
+- **Next**: Add comprehensive integration tests for server streaming and error cases in Commit 7.
+
+### p4-tests | test(server): add comprehensive unit and integration tests for streaming and chunker | phase/04-backend-stream
+- **Built**:
+  - `tests/test_backend_stream.py`: Complete test suite covering `GET /v1/health`, `POST /v1/session`, WebSocket authentication rejection (code 4001), WebSocket handshake (`start` -> `ready`), binary PCM streaming, real-time score receipt, clean teardown (`end`), and reconnect flow.
+  - Integration with `server/client_replay.py` synthetic stream tests.
+- **Why**: Ensure 100% test coverage of Phase 4 backend streaming requirements and protocol contracts.
+- **Decision**: Test both endpoint contracts and client statistics calculation.
+- **Tests**: 6 test methods in `tests/test_backend_stream.py`.
+- **Next**: Update documentation (API contracts, runbook, architecture, phase plan, handoff) in Commit 8.
+
+### p4-docs | docs(phase-4): update API contracts, runbook, architecture, and phase plan | phase/04-backend-stream
+- **Built**:
+  - `docs/07_API_CONTRACTS.md`: Fully documented `/v1/health`, `POST /v1/session`, WebSocket `/v1/stream` protocols, schemas, close codes (4001, 1000, 1011), and risk score definitions.
+  - `docs/06_RUNBOOK.md`: Added instructions for local Uvicorn execution, Docker containerization, replay test client invocation, and updated 55-test suite inventory.
+  - `docs/01_ARCHITECTURE.md`: Documented Section 3 (Real-Time Audio Streaming Pipeline, in-memory chunking, VAD hook, and session flow).
+  - `docs/02_PHASE_PLAN.md`: Marked Phase 4 as DONE with full inventory of completed deliverables.
+  - `HANDOFF.md`: Updated current state to Phase 4 DONE, ready for Phase 5.
+- **Why**: Ensure complete documentation synchronization with newly implemented backend streaming architecture.
+- **Decision**: Keep all architecture diagrams and runbook commands strictly reproducible.
+- **Tests**: Verified cross-reference link integrity and command accuracy.
+- **Left off / next**: Phase 4 complete across all 8 planned commits. Awaiting Gate G2 / developer review to merge and begin Phase 5.
+
+
+
+
+
+
+
+
+
 
 
