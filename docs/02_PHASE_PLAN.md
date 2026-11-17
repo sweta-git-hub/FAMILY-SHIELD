@@ -6,7 +6,7 @@
 |---|---|---|---|---|---|---|---|
 | 0 | Bootstrap & Docs | `phase/00-bootstrap` | Monorepo scaffold, docs skeleton, lint setup | DONE | Repo layout, docs/00-08, RULE.md, HANDOFF.md, README.md, pyproject.toml | CI lint hooks | ADR-001, ADR-002, ADR-003, ADR-004, ADR-005 |
 | 1 | Crypto Core | `phase/01-crypto-core` | TOTP, HKDF, words, lockout, duress in Python & Dart | DONE | core/crypto.py, core/crypto.dart, core/wordlist.py, tests/test_crypto.py | Cross-language runner | ADR-004, ADR-005 |
-| 2 | Pairing & Storage | `phase/02-pairing` | QR pairing, Keystore/Keychain, offline sync | TODO | - | Awaiting G1 permission | - |
+| 2 | Pairing & Storage | `phase/02-pairing` | Contact/phone pairing, secure vault, live 60s 6-digit sync | IN PROGRESS | ADR-006 | Awaiting G1 permission | ADR-006 |
 | 3 | Verify-Caller UX | `phase/03-verify-flow` | Big buttons, Hindi/English TTS, practice call | TODO | - | - | - |
 | 4 | Backend Stream | `phase/04-backend-stream` | FastAPI, WebSocket audio stream, chunker | TODO | - | - | - |
 | 5 | Scam Engine | `phase/05-scam-engine` | STT wrapper, lexicon, noisy-OR classifier | TODO | - | - | - |
@@ -47,3 +47,24 @@
   - 100% of RFC 4226 and RFC 6238 vectors pass.
   - Parity test produces identical codes across test vectors.
   - Lockout fails closed.
+
+### Phase 2: Pairing & Secure Storage (Contact-Based Pairing & 60s 6-Digit Sync)
+- **Branch**: `phase/02-pairing`
+- **Time-box**: 2.5 h
+- **In scope**:
+  - Contact-based family member addition: Enter/pick phone number with E.164 normalization (`core/phone_util.py`).
+  - Secure Zero-Knowledge Pairing Protocol: Out-of-band / peer token handshake deriving directional HKDF keys without server secret exposure (`core/pairing.py`).
+  - Encrypted local secure vault: Multi-member key storage, tamper protection, and revocation (`core/storage.py`).
+  - Synchronized 6-digit TOTP generator & remaining-time ticker (RFC 6238, 60s interval per user decision).
+  - Dual-device interactive demo interface (web simulator showing Guardian and Member devices side-by-side with real-time 60s countdown and live verification).
+  - Comprehensive unit test suite in `tests/test_pairing.py` and `tests/test_storage.py`.
+- **Out of scope**:
+  - Live acoustic deepfake analysis and Whisper STT (Phases 4-6).
+  - Production carrier cellular SMS gateway (mock/local transport for demo).
+- **Acceptance criteria**:
+  - Entering a phone number successfully creates a verified family pairing.
+  - Both paired devices compute identical synchronized 6-digit codes at every 60s step.
+  - Directional keys prevent reverse-impersonation ($A \to B \neq B \to A$).
+  - Storage vault fails closed on missing/corrupted keys.
+  - 100% automated test pass rate.
+

@@ -30,13 +30,13 @@
 - **Decision**: Option B. Clear engineering honesty wins credibility.
 
 ### ADR-004: Code Format: 6 Digits and 2-Word Phonetic Lexicon
-- **Status**: Accepted
+- **Status**: Superseded by ADR-006
 - **Date**: 2026-11-17
 - **Context**: A 4-digit code offers only ~13.3 bits of entropy (0.09% lucky guess chance in 3 tries) and is difficult for elderly users to enunciate in panic.
 - **Options Considered**:
   - A: 4-digit numeric code.
   - B: 6-digit numeric code (19.9 bits) or 2-word code from 2,048-word lexicon (22 bits).
-- **Decision**: Option B. Support both 6 digits and 2-word phonetic representations.
+- **Decision**: Option B. Support both 6 digits and 2-word phonetic representations. (Superseded to pure 6-digit numeric in ADR-006 to ensure universal accessibility across non-smartphones).
 
 ### ADR-005: Directional Key Derivation with HKDF-SHA256
 - **Status**: Accepted
@@ -46,3 +46,13 @@
   - A: Symmetric single key for both directions.
   - B: Derive distinct directional keys: $K_{A \to B}$ with info `"FVS1|A->B"` and $K_{B \to A}$ with info `"FVS1|B->A"`.
 - **Decision**: Option B using HKDF-SHA256. Code shown on member's device can only verify them to the guardian, not vice-versa.
+
+### ADR-006: Pure 6-Digit Code and Contact-Based Pairing with Feature-Phone Fallback
+- **Status**: Accepted
+- **Date**: 2026-11-17
+- **Context**: In-person QR scanning is impossible when family members live in different cities/hostels. Furthermore, many seniors use basic keypad phones (no camera/app store) and word dictionaries introduce confusion over standard OTP conventions.
+- **Options Considered**:
+  - A: In-person QR scan with dual 6-digit + 2-word codes.
+  - B: Contact-number-based setup with pure 6-digit rotating code and SMS fallback for feature phones.
+- **Decision**: Option B. Users add family members directly from phone contacts (E.164 normalization). The code is strictly a standard 6-digit TOTP (RFC 6238). Feature phones receive SMS verification alerts when challenged.
+- **Consequences**: Greatly simplifies elderly onboarding, enables remote setup over distance, and works universally across both smartphones and basic keypad phones.

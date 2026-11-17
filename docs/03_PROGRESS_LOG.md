@@ -20,3 +20,11 @@
 - **Decision**: ADR-004, ADR-005.
 - **Tests**: 9 test suites covering RFC 4226 vectors, RFC 6238 vectors, HKDF directional keys, duress keys, 2-word phonetic encoding/decoding, clock-skew verification windows, 3-strike fail-closed lockout, and 1,000 deterministic parity vectors (`python -m unittest discover tests`). Result: 9/9 passed in 0.077s.
 - **Left off / next**: Phase 1 complete. Awaiting user Gate G1 permission to start Phase 2 (Pairing & Secure Storage).
+
+### p2-init | docs: update ADR-006 and phase plan for 60s contact pairing | phase/02-pairing
+- **Built**: Updated `docs/04_DECISIONS.md` with ADR-006 (contact-based pairing, pure 6-digit TOTP, 60s rotation interval) and `docs/02_PHASE_PLAN.md` (Phase 2 marked IN PROGRESS).
+- **Why**: Address senior usability and remote pairing across cities; provide 60s window for stress-free reading.
+- **Decision**: ADR-006; 60-second time-step interval.
+- **Tests**: Documentation and plan consistency verified.
+- **Next**: Implement `core/phone_util.py` for E.164 normalization and contact structures.
+
