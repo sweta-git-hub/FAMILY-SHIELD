@@ -95,3 +95,35 @@ Clients never connect directly to WebSocket endpoints anonymously. Prior to call
    - Contract-compliant JSON score frames (`type: score`, `risk`, `tier`, `prompt`, `mock`) are pushed back over the WebSocket connection within milliseconds of chunk completion.
 7. **Clean Teardown**:
    - Client sends `{"type": "end"}` or disconnects; server cleanly closes socket, evicts in-memory audio buffers, and deregisters session.
+
+---
+
+## 4. Semantic Scam-Phrase Engine & Intent Classification (Phase 5)
+
+### 4.1 In-Memory Speech-to-Text Pipeline (`ml/stt_engine.py`)
+1. **Zero-Disk Ingestion**:
+   - The STT pipeline wraps `faster-whisper` (CTranslate2 INT8 quantized models) and an in-memory `MockSTTEngine`.
+   - Binary 16 kHz 16-bit linear PCM audio chunks are transcoded purely within memory buffers (`io.BytesIO`) into in-memory WAV frames.
+   - Under no circumstances is audio or transcripts written to disk or logged, upholding strict Rule 7 privacy guarantees.
+2. **Multilingual Support**:
+   - Optimized for Indian family call context: supports Hindi (`hi`), English (`en`), and code-mixed Hinglish.
+
+### 4.2 Multilingual Scam Lexicon & Category Taxonomy (`ml/scam_lexicon.py`)
+Organizes social engineering indicators into 6 core threat categories:
+- **`authority`** ($p = 0.85$): Police, CBI, ED, Court warrants, "Digital Arrest", "थाना", "गिरफ्तार".
+- **`secrecy`** ($p = 0.80$): Isolation tactics: "don't tell anyone", "kisi ko mat batana", "phone mat kaatna", "line par raho".
+- **`financial`** ($p = 0.75$): Payment steering: "UPI karo", "GPay", "PhonePe", "scan QR", "approve request", "खाते में डालो".
+- **`distress`** ($p = 0.70$): False emergencies: "accident", "hospital", "kidnap", "bail money", "bacha lo".
+- **`urgency`** ($p = 0.55$): Time coercion: "immediately", "right now", "turant", "jaldi", "abhi ke abhi".
+- **`device_excuse`** ($p = 0.50$): Unfamiliar number justification: "new number", "friend's phone", "phone kharab ho gaya".
+
+### 4.3 Probabilistic Noisy-OR Bayesian Intent Classifier (`ml/scam_classifier.py`)
+1. Rather than naive boolean matching, active cues $X = \{x_1, \dots, x_k\}$ are combined via a causal Noisy-OR Bayesian formulation:
+   $$P(\text{Scam} \mid X) = 1 - (1 - p_0) \prod_{i: x_i = 1} (1 - p_i)$$
+   where $p_0 = 0.05$ represents baseline background false positive probability, and $p_i$ is the causal probability of category $i$.
+2. **Monotonic Risk Escalation**:
+   - Mild urgency alone: $s_t \approx 0.57$
+   - Urgency + Secrecy: $s_t \approx 0.91$
+   - Authority + Secrecy + Financial: $s_t \approx 0.99$ (Triggering immediate RED alert tier).
+3. **StreamScorer Integration**:
+   - Semantic scam score $s_t$ feeds directly into the real-time stream feedback, replacing Phase 4 mock placeholders and dynamically setting risk tier (`GREEN`, `AMBER`, `RED`) and prompt instructions (`normal` vs `ask_for_code`).

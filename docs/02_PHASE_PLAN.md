@@ -9,7 +9,7 @@
 | 2 | Pairing & Storage | `phase/02-pairing` | Contact/phone pairing, secure vault, live 60s 6-digit sync | DONE | core/phone_util.py, core/pairing.py, core/storage.py, demo/web_simulator.py, tests/test_pairing.py, tests/test_storage.py | Ready for Phase 3 | ADR-006 |
 | 3 | Verify-Caller UX | `phase/03-verify-flow` | Big buttons, Hindi/English TTS, practice call | DONE | core/elderly_ux.py, tests/test_elderly_ux.py, demo/web_simulator.py | Ready for Phase 4 | - |
 | 4 | Backend Stream | `phase/04-backend-stream` | FastAPI, WebSocket audio stream, chunker | DONE | server/main.py, server/chunker.py, server/session.py, server/scorer.py, server/client_replay.py, mobile/audio_stream_client.dart, infra/Dockerfile, tests/test_backend_stream.py | Ready for Phase 5 | - |
-| 5 | Scam Engine | `phase/05-scam-engine` | STT wrapper, lexicon, noisy-OR classifier | TODO | - | - | - |
+| 5 | Scam Engine | `phase/05-scam-engine` | STT wrapper, lexicon, noisy-OR classifier | DONE | ml/scam_lexicon.py, ml/scam_classifier.py, ml/stt_engine.py, server/scorer.py, server/stream.py, tests/test_scam_engine.py | Ready for Phase 6 | - |
 | 6 | Anti-Spoof | `phase/06-antispoof` | Telephony simulator, ONNX model inference | TODO | - | - | - |
 | 7 | Fusion & Alerts | `phase/07-fusion-alerts` | Logistic fusion, alert tiers, client triggers | TODO | - | - | - |
 | 8 | Realistic Demo | `phase/08-demo-path` | Telephony/replay demo path, scripted cases | TODO | - | - | - |
@@ -131,6 +131,42 @@
   - **External Dependencies**: Requires `fastapi`, `uvicorn`, `websockets`, `python-dotenv` (requires Gate G4 approval before installation).
   - **PCM Frame Alignment**: Risk of malformed frames or byte alignment mismatch handled via strict byte-length validation in the chunker.
   - **Data Privacy**: Strictly in-memory `io.BytesIO`/memoryview buffers to ensure zero disk exposure.
+
+### Phase 5: STT and Scam-Phrase Engine
+- **Branch**: `phase/05-scam-engine`
+- **Time-box**: 2.5 h
+- **Status**: DONE
+- **Goal and Objectives**:
+  - Convert 3-second audio speech segments into Hindi, English, and Hinglish transcripts.
+  - Detect high-risk social engineering scam tactics (urgency, isolation, legal/police threats, financial steering, device excuse).
+  - Compute calibrated semantic scam score $s_t \in [0.0, 1.0]$ via probabilistic Noisy-OR classification over matched intent categories.
+  - Connect semantic scorer directly to streaming WebSocket pipeline replacing mock semantic scores.
+- **In scope**:
+  - Bilingual/Hinglish scam lexicon and category taxonomy (`ml/scam_lexicon.py`) covering Hindi (Devanagari + Romanized Hinglish) and English.
+  - Semantic scam intent classifier with Noisy-OR probabilistic fusion (`ml/scam_classifier.py`).
+  - STT inference engine wrapper (`ml/stt_engine.py`) supporting faster-whisper/whisper with robust lightweight regex/mock fallback for resource-constrained test environments.
+  - Stream scorer integration (`server/scorer.py`) replacing mock $s_t$ with real semantic classifier scores.
+  - Unit and integration tests covering lexicon matching, noisy-OR math, STT wrapper, and end-to-end streaming scoring (`tests/test_scam_engine.py`).
+  - Documentation updates across `docs/01_ARCHITECTURE.md`, `docs/03_PROGRESS_LOG.md`, `docs/07_API_CONTRACTS.md`, `docs/08_DATA_AND_MODELS.md`, and `HANDOFF.md`.
+- **Out of scope**:
+  - Acoustic anti-spoofing / synthetic voice detection (Phase 6 AASIST/ONNX).
+  - Logistic multimodal fusion across acoustic and semantic (Phase 7).
+  - FCM push notifications to family members (Phase 7).
+- **Planned Commits (6 commits)**:
+  1. `feat(ml): implement bilingual scam lexicon and category taxonomy`
+  2. `feat(ml): implement probabilistic noisy-or scam intent classifier`
+  3. `feat(ml): implement speech-to-text engine wrapper with graceful fallbacks`
+  4. `feat(server): integrate semantic scam scoring into streaming server pipeline`
+  5. `test(ml): add comprehensive test suite for lexicon, classifier, and STT`
+  6. `docs(phase-5): update architecture, progress log, runbook, and handoff`
+- **Acceptance criteria**:
+  - Lexicon accurately tags all 6 core scam categories across English, Hindi, and Hinglish phrases.
+  - Noisy-OR classifier outputs properly bounded and monotonic probabilities $[0.0, 1.0]$.
+  - Zero scam indicators yield $s_t < 0.15$ (baseline safe speech).
+  - Multiple compound scam indicators (e.g. digital arrest + urgency + UPI payment) yield $s_t \ge 0.70$ (RED tier).
+  - Zero audio bytes or intermediate transcripts are persisted to disk (Rule 7).
+  - 100% automated test pass rate across unit and integration tests.
+
 
 
 
