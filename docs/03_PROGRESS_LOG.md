@@ -116,6 +116,16 @@
 - **Tests**: Replay client structure and Dart client syntax verified against API contract.
 - **Next**: Add comprehensive integration tests for server streaming and error cases in Commit 7.
 
+### p4-tests | test(server): add comprehensive unit and integration tests for streaming and chunker | phase/04-backend-stream
+- **Built**:
+  - `tests/test_backend_stream.py`: Complete test suite covering `GET /v1/health`, `POST /v1/session`, WebSocket authentication rejection (code 4001), WebSocket handshake (`start` -> `ready`), binary PCM streaming, real-time score receipt, clean teardown (`end`), and reconnect flow.
+  - Integration with `server/client_replay.py` synthetic stream tests.
+- **Why**: Ensure 100% test coverage of Phase 4 backend streaming requirements and protocol contracts.
+- **Decision**: Test both endpoint contracts and client statistics calculation.
+- **Tests**: 6 test methods in `tests/test_backend_stream.py`.
+- **Next**: Update documentation (API contracts, runbook, architecture, phase plan, handoff) in Commit 8.
+
+
 
 
 
