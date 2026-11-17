@@ -56,5 +56,17 @@
 - **Tests**: `python -m unittest discover tests` -> 31 tests passed in 0.128s.
 - **Left off / next**: Phase 3 complete. Awaiting Gate G1 permission for Phase 4 (Backend Audio Stream).
 
+### p4-scaffold | feat(server): scaffold FastAPI app with health check and config loader | phase/04-backend-stream
+- **Built**:
+  - `server/__init__.py`: Package init marking service version 0.4.0.
+  - `server/config.py`: Environment-driven configuration loader (`ServerConfig`) with audio parameters (16 kHz, 16-bit PCM, 3.0s chunk, 1.0s stride).
+  - `server/logger.py`: Structured JSON logger enforcing Rule 7 privacy (automatic stripping of raw audio, transcripts, and secrets).
+  - `server/main.py`: FastAPI server entrypoint with CORS, lifespan logging, and `GET /v1/health` endpoint.
+- **Why**: Establish foundational ASGI web service skeleton for Phase 4 real-time audio ingestion.
+- **Decision**: Use 16 kHz 16-bit mono PCM as canonical streaming format matching Whisper/AASIST expectations.
+- **Tests**: Validated configuration calculation properties (frame_bytes=3200, chunk_bytes=96000, stride_bytes=32000).
+- **Next**: Implement transient session token endpoint (`POST /v1/session`) and session manager in Commit 2.
+
+
 
 

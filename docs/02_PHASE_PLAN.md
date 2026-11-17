@@ -8,7 +8,7 @@
 | 1 | Crypto Core | `phase/01-crypto-core` | TOTP, HKDF, words, lockout, duress in Python & Dart | DONE | core/crypto.py, core/crypto.dart, core/wordlist.py, tests/test_crypto.py | Cross-language runner | ADR-004, ADR-005 |
 | 2 | Pairing & Storage | `phase/02-pairing` | Contact/phone pairing, secure vault, live 60s 6-digit sync | DONE | core/phone_util.py, core/pairing.py, core/storage.py, demo/web_simulator.py, tests/test_pairing.py, tests/test_storage.py | Ready for Phase 3 | ADR-006 |
 | 3 | Verify-Caller UX | `phase/03-verify-flow` | Big buttons, Hindi/English TTS, practice call | DONE | core/elderly_ux.py, tests/test_elderly_ux.py, demo/web_simulator.py | Ready for Phase 4 | - |
-| 4 | Backend Stream | `phase/04-backend-stream` | FastAPI, WebSocket audio stream, chunker | TODO | - | - | - |
+| 4 | Backend Stream | `phase/04-backend-stream` | FastAPI, WebSocket audio stream, chunker | IN PROGRESS | - | Backend scaffolding | - |
 | 5 | Scam Engine | `phase/05-scam-engine` | STT wrapper, lexicon, noisy-OR classifier | TODO | - | - | - |
 | 6 | Anti-Spoof | `phase/06-antispoof` | Telephony simulator, ONNX model inference | TODO | - | - | - |
 | 7 | Fusion & Alerts | `phase/07-fusion-alerts` | Logistic fusion, alert tiers, client triggers | TODO | - | - | - |
@@ -88,5 +88,49 @@
   - Practice mode runs isolated from actual live lockout counters.
   - Emergency callback button dials the true saved number.
   - 100% automated test pass rate.
+
+### Phase 4: Backend Skeleton and Audio Streaming
+- **Branch**: `phase/04-backend-stream`
+- **Time-box**: 2.5 h
+- **Status**: IN PROGRESS
+- **Goal and Objectives**:
+  - Phone microphone audio reaches the server as clean 3-second chunks and a dummy score returns.
+  - Establish a low-latency, bidirectional WebSocket audio streaming pipeline connecting mobile clients to the backend processing service.
+  - Implement transient, in-memory sliding window chunking with zero disk writes, upholding Rule 7 privacy guarantees.
+- **In scope**:
+  - FastAPI web server scaffold with environment configuration and health endpoint (`GET /v1/health`).
+  - Transient session token negotiation endpoint (`POST /v1/session`).
+  - WebSocket audio streaming endpoint (`/v1/stream?token=<session_token>`) supporting `start`, binary 16-bit linear PCM (16 kHz, mono), `context`, `end`, and score feedback per `docs/07_API_CONTRACTS.md`.
+  - In-memory audio ring buffer and chunker with a 3.0-second sliding analysis window and Voice Activity Detection (VAD) hook.
+  - Contract-compliant dummy ML decision scorer (`MOCK`) returning mock risk scores, tiers, and prompts.
+  - Structured, privacy-preserving logging strictly omitting raw audio data, transcripts, or personal identifiers.
+  - Containerization setup (`infra/Dockerfile` and `infra/docker-compose.yml`).
+  - Python test replay client (`server/client_replay.py`) to stream WAV/PCM files for realistic latency and protocol testing.
+  - Comprehensive unit and integration test suite covering chunking, ring buffer overflow, session negotiation, and WebSocket message handling.
+- **Out of scope**:
+  - Real machine learning models (Whisper STT in Phase 5, AASIST synthetic speech detection in Phase 6).
+  - Push notifications via FCM (Phase 7).
+  - Long-term storage or user authentication beyond ephemeral session tokens.
+- **Planned Commits (8 commits)**:
+  1. `feat(server): scaffold FastAPI app with health check and config loader`
+  2. `feat(server): implement transient session token endpoint`
+  3. `feat(server): implement PCM audio chunker with in-memory ring buffer`
+  4. `feat(server): implement WebSocket stream endpoint with dummy mock scorer`
+  5. `feat(infra): add Dockerfile and docker-compose for backend server`
+  6. `feat(client): implement audio streaming client and replay test utility`
+  7. `test(server): add comprehensive unit and integration tests for streaming and chunker`
+  8. `docs(phase-4): update API contracts, runbook, architecture, and phase plan`
+- **Acceptance criteria**:
+  - Phone/test client streams 60 seconds of speech; server logs correct chunk count; zero audio bytes or transcripts are persisted to disk or server logs.
+  - WebSocket client disconnect and reconnect works cleanly without server crash or state leak.
+  - Round-trip latency (client PCM frame sent -> server chunk processed -> mock score received) is measured and documented.
+  - 100% automated test pass rate for chunker, endpoints, and streaming protocol.
+- **Risks & Dependencies**:
+  - **Dependencies**: Relies on Phase 0 repository structure, `docs/07_API_CONTRACTS.md`, and `RULE.md` Section 7 privacy mandates.
+  - **Host Python Environment**: Python 3.14 on host requires repair/reinstall or a functional Python interpreter in PATH.
+  - **External Dependencies**: Requires `fastapi`, `uvicorn`, `websockets`, `python-dotenv` (requires Gate G4 approval before installation).
+  - **PCM Frame Alignment**: Risk of malformed frames or byte alignment mismatch handled via strict byte-length validation in the chunker.
+  - **Data Privacy**: Strictly in-memory `io.BytesIO`/memoryview buffers to ensure zero disk exposure.
+
 
 
