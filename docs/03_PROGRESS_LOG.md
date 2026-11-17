@@ -67,6 +67,17 @@
 - **Tests**: Validated configuration calculation properties (frame_bytes=3200, chunk_bytes=96000, stride_bytes=32000).
 - **Next**: Implement transient session token endpoint (`POST /v1/session`) and session manager in Commit 2.
 
+### p4-session | feat(server): implement transient session token endpoint | phase/04-backend-stream
+- **Built**:
+  - `server/session.py`: In-memory `SessionManager` and `SessionRecord` data structure with automated TTL expiration, capacity limits, and `POST /v1/session` endpoint.
+  - `server/main.py`: Integrated `SessionManager` into application state and included session router.
+  - `tests/test_session.py`: 6 unit tests covering session generation, token validation, expiration, activation, closure, and capacity throttling.
+- **Why**: Satisfy Phase 4 requirement for ephemeral session token issuance prior to WebSocket connection.
+- **Decision**: Zero persistence; sessions exist strictly in memory with automatic expiration to prevent resource exhaustion.
+- **Tests**: 6 unit tests in `tests/test_session.py`.
+- **Next**: Implement audio chunker and in-memory ring buffer in Commit 3.
+
+
 
 
 
