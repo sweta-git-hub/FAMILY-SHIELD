@@ -125,6 +125,19 @@
 - **Tests**: 6 test methods in `tests/test_backend_stream.py`.
 - **Next**: Update documentation (API contracts, runbook, architecture, phase plan, handoff) in Commit 8.
 
+### p4-docs | docs(phase-4): update API contracts, runbook, architecture, and phase plan | phase/04-backend-stream
+- **Built**:
+  - `docs/07_API_CONTRACTS.md`: Fully documented `/v1/health`, `POST /v1/session`, WebSocket `/v1/stream` protocols, schemas, close codes (4001, 1000, 1011), and risk score definitions.
+  - `docs/06_RUNBOOK.md`: Added instructions for local Uvicorn execution, Docker containerization, replay test client invocation, and updated 55-test suite inventory.
+  - `docs/01_ARCHITECTURE.md`: Documented Section 3 (Real-Time Audio Streaming Pipeline, in-memory chunking, VAD hook, and session flow).
+  - `docs/02_PHASE_PLAN.md`: Marked Phase 4 as DONE with full inventory of completed deliverables.
+  - `HANDOFF.md`: Updated current state to Phase 4 DONE, ready for Phase 5.
+- **Why**: Ensure complete documentation synchronization with newly implemented backend streaming architecture.
+- **Decision**: Keep all architecture diagrams and runbook commands strictly reproducible.
+- **Tests**: Verified cross-reference link integrity and command accuracy.
+- **Left off / next**: Phase 4 complete across all 8 planned commits. Awaiting Gate G2 / developer review to merge and begin Phase 5.
+
+
 
 
 

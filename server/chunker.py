@@ -120,13 +120,6 @@ class AudioChunker:
         self._buffer.extend(pcm_bytes)
         self._total_bytes_received += len(pcm_bytes)
 
-        # Evict oldest bytes if buffer exceeds max capacity to prevent memory bloat
-        if len(self._buffer) > self.max_buffer_bytes:
-            excess = len(self._buffer) - self.max_buffer_bytes
-            # Align eviction to stride
-            evict_bytes = ((excess // self.stride_bytes) + 1) * self.stride_bytes
-            del self._buffer[:evict_bytes]
-
         chunks: List[AudioChunk] = []
 
         # Sliding window loop: extract while we have at least chunk_bytes
@@ -151,6 +144,11 @@ class AudioChunker:
 
             # Advance buffer by stride_bytes
             del self._buffer[:self.stride_bytes]
+
+        # Evict excess unextracted bytes if buffer exceeds max capacity
+        if len(self._buffer) > self.max_buffer_bytes:
+            excess = len(self._buffer) - self.max_buffer_bytes
+            del self._buffer[:excess]
 
         return chunks
 

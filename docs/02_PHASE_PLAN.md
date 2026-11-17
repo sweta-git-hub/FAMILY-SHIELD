@@ -8,7 +8,7 @@
 | 1 | Crypto Core | `phase/01-crypto-core` | TOTP, HKDF, words, lockout, duress in Python & Dart | DONE | core/crypto.py, core/crypto.dart, core/wordlist.py, tests/test_crypto.py | Cross-language runner | ADR-004, ADR-005 |
 | 2 | Pairing & Storage | `phase/02-pairing` | Contact/phone pairing, secure vault, live 60s 6-digit sync | DONE | core/phone_util.py, core/pairing.py, core/storage.py, demo/web_simulator.py, tests/test_pairing.py, tests/test_storage.py | Ready for Phase 3 | ADR-006 |
 | 3 | Verify-Caller UX | `phase/03-verify-flow` | Big buttons, Hindi/English TTS, practice call | DONE | core/elderly_ux.py, tests/test_elderly_ux.py, demo/web_simulator.py | Ready for Phase 4 | - |
-| 4 | Backend Stream | `phase/04-backend-stream` | FastAPI, WebSocket audio stream, chunker | IN PROGRESS | - | Backend scaffolding | - |
+| 4 | Backend Stream | `phase/04-backend-stream` | FastAPI, WebSocket audio stream, chunker | DONE | server/main.py, server/chunker.py, server/session.py, server/scorer.py, server/client_replay.py, mobile/audio_stream_client.dart, infra/Dockerfile, tests/test_backend_stream.py | Ready for Phase 5 | - |
 | 5 | Scam Engine | `phase/05-scam-engine` | STT wrapper, lexicon, noisy-OR classifier | TODO | - | - | - |
 | 6 | Anti-Spoof | `phase/06-antispoof` | Telephony simulator, ONNX model inference | TODO | - | - | - |
 | 7 | Fusion & Alerts | `phase/07-fusion-alerts` | Logistic fusion, alert tiers, client triggers | TODO | - | - | - |
@@ -92,7 +92,7 @@
 ### Phase 4: Backend Skeleton and Audio Streaming
 - **Branch**: `phase/04-backend-stream`
 - **Time-box**: 2.5 h
-- **Status**: IN PROGRESS
+- **Status**: DONE
 - **Goal and Objectives**:
   - Phone microphone audio reaches the server as clean 3-second chunks and a dummy score returns.
   - Establish a low-latency, bidirectional WebSocket audio streaming pipeline connecting mobile clients to the backend processing service.

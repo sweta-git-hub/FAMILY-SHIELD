@@ -8,7 +8,7 @@
 |                                                                                   |
 |  +--------------------+        +---------------------+        +-----------------+ |
 |  | In-Person Pairing  | <----> | Secure Storage      | <----> | TOTP / Crypto   | |
-|  | (QR Code Exchange) |        | (Keystore/Keychain) |        | Engine (Offline)| |
+|  | (QR / Contact Exch)|        | (Keystore/Keychain) |        | Engine (Offline)| |
 |  +--------------------+        +---------------------+        +-----------------+ |
 |                                                                        |          |
 |  +--------------------+        +---------------------+                 v          |
@@ -61,9 +61,37 @@
    - Pure 6-digit numeric ($\text{digits} = \text{bin} \pmod{10^6}$), providing 1-minute stress-free reading for seniors.
 4. **Encrypted Local Vault**:
    - Relationships stored in local encrypted vault sealed with PBKDF2-HMAC-SHA256 and HMAC-SHA256 integrity tag. Zero secrets in cleartext logs.
-4. **Verification Window & Lockout State Machine**:
+5. **Verification Window & Lockout State Machine**:
    - Verification accepts $T \in \{T_c - 1, T_c, T_c + 1\}$ to tolerate network/clock jitter.
    - Max 3 invalid attempts per challenge session before entering `LOCKED` state.
    - Fail closed: any error or lockout causes the app to recommend immediate hang-up and escalation to family alert.
-5. **Duress Protocol**:
+6. **Duress Protocol**:
    - Distinct derived duress code (or intentional offset) allowing an assaulted user to present a code that appears accepted to the attacker while silently triggering emergency notifications.
+
+---
+
+## 3. Real-Time Audio Streaming Pipeline (Phase 4)
+
+### 3.1 Ephemeral Session Token Issuance
+Clients never connect directly to WebSocket endpoints anonymously. Prior to call analysis:
+1. Client requests token via `POST /v1/session`.
+2. Server `SessionManager` generates a cryptographically secure random token (via `secrets.token_urlsafe(32)`), stores an ephemeral in-memory record with TTL (3600s), and returns the token.
+3. Tokens are bound to a session ID and strictly held in RAM; zero database queries or persistent records.
+
+### 3.2 Bidirectional WebSocket Audio Stream (`/v1/stream?token=<token>`)
+1. **Authentication**: Connection validates query parameter token against active session registry. Invalid or expired tokens receive WebSocket close code `4001`.
+2. **Handshake**: Client sends JSON `{"type": "start", ...}` and receives `{"type": "ready", ...}`.
+3. **Paced Audio Ingestion**: Client streams continuous 16 kHz 16-bit linear PCM mono frames at 100ms intervals (3,200 bytes per frame).
+4. **Circular In-Memory Ring Buffer (`AudioChunker`)**:
+   - Accumulates incoming binary PCM bytes strictly in RAM (`bytearray`/`memoryview`).
+   - Slices continuous audio into sliding 3.0-second analysis windows (96,000 bytes) with a 1.0-second stride (32,000 bytes).
+   - Automatically evicts oldest bytes if buffer capacity exceeds 12.0 seconds, preventing memory leaks during network backpressure.
+   - Conforms to **Rule 7**: Zero raw audio bytes are ever written to disk or permanent storage.
+5. **VAD Hook (`SimpleEnergyVAD`)**:
+   - Measures normalized RMS energy of each 3.0s window.
+   - Marks chunks with `has_speech = False` when audio energy falls below threshold (0.015), preventing needless classifier evaluations on ambient silence.
+6. **Real-Time Score Delivery**:
+   - Completed chunks are processed by the scoring pipeline.
+   - Contract-compliant JSON score frames (`type: score`, `risk`, `tier`, `prompt`, `mock`) are pushed back over the WebSocket connection within milliseconds of chunk completion.
+7. **Clean Teardown**:
+   - Client sends `{"type": "end"}` or disconnects; server cleanly closes socket, evicts in-memory audio buffers, and deregisters session.
