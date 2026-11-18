@@ -86,6 +86,7 @@ class SimulatorState:
         self.active_scenario_id = "S1"
         self.active_scenario_step = 0
         self.scenario_event_log = []
+        self.pending_invitations = {}
 
         # Auto-pair a default family link for instant demo convenience
         self.pair_devices(
@@ -95,8 +96,10 @@ class SimulatorState:
         )
 
     def pair_devices(self, guardian_phone: str, member_phone: str, member_name: str) -> dict:
-        norm_guardian = normalize_phone_number(guardian_phone)
-        norm_member = normalize_phone_number(member_phone)
+        guardian_raw = guardian_phone if guardian_phone and guardian_phone.strip() else self.guardian_phone
+        member_raw = member_phone if member_phone and member_phone.strip() else self.member_phone
+        norm_guardian = normalize_phone_number(guardian_raw)
+        norm_member = normalize_phone_number(member_raw)
 
         self.guardian_phone = norm_guardian
         self.member_phone = norm_member
@@ -131,6 +134,86 @@ class SimulatorState:
             "member_name": self.member_name,
             "step_seconds": self.step_seconds,
             "invitation_uri": invitation_uri,
+        }
+
+    def create_pairing_invitation(self, member_phone: str, member_name: str, host_ip: str = "192.168.137.230:8080") -> dict:
+        import random, re
+        norm_member = normalize_phone_number(member_phone)
+        m_name = member_name.strip() or "Rahul (Son)"
+        pin = f"{random.randint(100000, 999999)}"
+
+        invitation_uri, _ = PairingSession.create_invitation(
+            creator_phone=self.guardian_phone,
+            creator_role=DeviceRole.GUARDIAN,
+            target_phone=norm_member,
+            target_name=m_name,
+            step_seconds=self.step_seconds,
+        )
+
+        clean_digits = re.sub(r"[^\d]", "", norm_member)
+        msg_text = (
+            f"🛡️ *Family Voice Shield - Secure Pairing Invitation*\n\n"
+            f"Mom has invited you to connect your phone for AI voice-clone scam protection.\n\n"
+            f"🔑 Your One-Time Pairing PIN: *{pin}*\n\n"
+            f"Tap this link on your phone to connect:\n"
+            f"http://{host_ip}/?pair_pin={pin}\n\n"
+            f"(This code expires in 10 minutes)."
+        )
+        whatsapp_url = f"https://api.whatsapp.com/send?phone={clean_digits}&text={urllib.parse.quote(msg_text)}"
+        sms_text = (
+            f"[Family Voice Shield] Mom invited you to connect. "
+            f"Your 6-digit Pairing PIN is: {pin}. Open: http://{host_ip}/?pair_pin={pin}"
+        )
+
+        record = {
+            "pin": pin,
+            "target_phone": norm_member,
+            "display_phone": format_phone_display(norm_member),
+            "target_name": m_name,
+            "invitation_uri": invitation_uri,
+            "whatsapp_url": whatsapp_url,
+            "sms_text": sms_text,
+            "sms_url": f"sms:{clean_digits}?body={urllib.parse.quote(sms_text)}",
+            "mobile_url": f"http://{host_ip}/?pair_pin={pin}",
+            "expires_at": time.time() + 600,
+        }
+        self.pending_invitations[pin] = record
+        return record
+
+    def confirm_pairing_pin(self, pin: str, acceptor_name: str = "Mom") -> dict:
+        cleaned_pin = pin.strip()
+        record = self.pending_invitations.get(cleaned_pin)
+        if not record:
+            raise ValueError(f"Invalid or expired Pairing PIN: '{cleaned_pin}'")
+
+        if time.time() > record["expires_at"]:
+            del self.pending_invitations[cleaned_pin]
+            raise ValueError("This Pairing PIN has expired. Please generate a new one.")
+
+        g_rel, m_rel = PairingSession.accept_invitation(
+            invitation_uri=record["invitation_uri"],
+            acceptor_phone=record["target_phone"],
+            acceptor_name=acceptor_name,
+        )
+
+        self.guardian_phone = g_rel.owner_phone
+        self.member_phone = m_rel.owner_phone
+        self.member_name = record["target_name"]
+
+        self.guardian_rel = g_rel
+        self.member_rel = m_rel
+        self.guardian_vault.add_relationship(g_rel)
+        self.member_vault.add_relationship(m_rel)
+        self.lockout_session = g_rel.create_lockout_session(max_attempts=3)
+
+        del self.pending_invitations[cleaned_pin]
+
+        return {
+            "status": "PAIRED",
+            "guardian_phone": self.guardian_phone,
+            "member_phone": self.member_phone,
+            "member_name": self.member_name,
+            "step_seconds": self.step_seconds,
         }
 
     def get_status(self) -> dict:
@@ -1034,10 +1117,15 @@ HTML_TEMPLATE = """<!DOCTYPE html>
     </select>
   </div>
   <div class="input-group">
-    <label>Contact (Son):</label>
-    <input type="text" id="memberPhoneInput" value="+91 98765 00002" style="width: 140px;">
+    <label>Contact Phone:</label>
+    <input type="text" id="memberPhoneInput" value="+91 98765 00002" style="width: 135px;" placeholder="+91 98765 00002">
   </div>
-  <button class="btn" onclick="pairFamilyMember()">Pair Member</button>
+  <div class="input-group">
+    <label>Name:</label>
+    <input type="text" id="memberNameInput" value="Rahul (Son)" style="width: 110px;" placeholder="Name">
+  </div>
+  <button class="btn" id="pairMemberBtn" onclick="pairFamilyMember()">Pair Member</button>
+  <button class="btn" style="background: #2563eb; color: #fff; font-weight: 800;" onclick="openPhonePairModal()">📲 Connect Real Phone (WhatsApp / SMS)</button>
   <button class="btn btn-outline" onclick="openPracticeModal()">🎓 Practice Call Mode</button>
   <button class="btn btn-contrast" onclick="toggleContrast()">Toggle High Contrast</button>
   <button class="btn btn-outline" onclick="resetVerification()">Reset Strikes</button>
@@ -1225,10 +1313,124 @@ HTML_TEMPLATE = """<!DOCTYPE html>
   </div>
 </div>
 
+<!-- REAL PHONE PAIRING MODAL (WhatsApp & SMS) -->
+<div id="phonePairModal" class="modal-overlay">
+  <div class="modal-box" style="max-width: 480px; text-align: left;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+      <h2 style="font-size: 19px; font-weight: 800; color: #fff;">📱 Connect Your Real Phone</h2>
+      <button class="btn btn-outline" style="padding: 2px 8px; font-size: 16px;" onclick="closePhonePairModal()">✕</button>
+    </div>
+    <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 14px; line-height: 1.4;">
+      Connect your physical smartphone. A unique 6-digit One-Time Pairing PIN is generated to deliver via WhatsApp or SMS to your phone.
+    </p>
+
+    <!-- Step 1: Input Phone & Name -->
+    <div style="background: #0f172a; border: 1px solid #334155; border-radius: 12px; padding: 12px; margin-bottom: 12px;">
+      <div style="margin-bottom: 8px;">
+        <label style="font-size: 12px; font-weight: 700; color: #94a3b8; display: block; margin-bottom: 4px;">Your Real Mobile Number (e.g. +91 98765 43210):</label>
+        <input type="text" id="realPhoneInput" placeholder="+91 98765 43210" value="+91 "
+               style="width: 100%; background: #000; border: 1px solid #3b82f6; border-radius: 8px; color: #fff; padding: 10px; font-size: 16px; font-weight: 700;">
+      </div>
+      <div style="margin-bottom: 10px;">
+        <label style="font-size: 12px; font-weight: 700; color: #94a3b8; display: block; margin-bottom: 4px;">Name / Label:</label>
+        <input type="text" id="realNameInput" placeholder="e.g. My Phone or Rahul" value="My Mobile"
+               style="width: 100%; background: #000; border: 1px solid #334155; border-radius: 8px; color: #fff; padding: 8px; font-size: 14px;">
+      </div>
+      <button class="btn" id="genInviteBtn" style="width: 100%; padding: 10px; font-size: 14px; background: #2563eb; color: #fff;" onclick="generatePairingCode()">
+        ⚡ Generate 6-Digit PIN & WhatsApp Message
+      </button>
+    </div>
+
+    <!-- Step 2: Generated Code & Dispatch Options -->
+    <div id="pairingCodeSection" style="display: none; background: #0b1329; border: 1px solid #1d4ed8; border-radius: 12px; padding: 14px; margin-bottom: 12px;">
+      <div style="text-align: center; margin-bottom: 12px;">
+        <div style="font-size: 11px; color: #93c5fd; text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px;">Your 6-Digit Pairing PIN:</div>
+        <div id="generatedPairPin" style="font-family: monospace; font-size: 38px; font-weight: 900; letter-spacing: 6px; color: #38bdf8; margin: 4px 0;">000000</div>
+        <div style="font-size: 11px; color: #94a3b8;">Expires in 10 minutes &bull; Zero-Knowledge Handshake</div>
+      </div>
+
+      <!-- WhatsApp Button -->
+      <a id="whatsappInviteLink" href="#" target="_blank" class="btn"
+         style="display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; padding: 11px; background: #22c55e; color: #000; font-weight: 800; font-size: 14px; text-decoration: none; border-radius: 8px; margin-bottom: 10px;">
+        💬 Send Code via WhatsApp Now
+      </a>
+
+      <!-- Direct Phone Browser Link -->
+      <div style="background: rgba(0,0,0,0.5); padding: 8px 10px; border-radius: 8px; font-size: 11px; color: #cbd5e1; margin-bottom: 12px;">
+        <span style="color: #60a5fa; font-weight: 700;">Open on your physical phone's browser:</span><br>
+        <span id="mobileDirectUrl" style="word-break: break-all; color: #facc15; font-family: monospace;">http://192.168.137.230:8080/</span>
+      </div>
+
+      <!-- Step 3: Enter PIN to complete pairing -->
+      <div style="border-top: 1px solid rgba(255,255,255,0.1); padding-top: 10px;">
+        <label style="font-size: 12px; font-weight: 700; color: #e2e8f0; display: block; margin-bottom: 4px;">Enter PIN to Confirm Pairing:</label>
+        <div style="display: flex; gap: 8px;">
+          <input type="text" id="confirmPinInput" maxlength="6" placeholder="000000"
+                 style="flex: 1; background: #000; border: 1px solid #334155; border-radius: 8px; color: #fff; text-align: center; font-size: 20px; font-family: monospace; font-weight: 700; letter-spacing: 4px;">
+          <button class="btn" style="background: #10b981; color: #fff; padding: 8px 16px; font-weight: 800;" onclick="confirmPairingPin()">
+            Confirm & Pair
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div id="pairStatusFeedback" style="font-size: 13px; font-weight: 700; text-align: center; min-height: 20px;"></div>
+  </div>
+</div>
+
 <script>
 let enteredDigits = "";
 let currentLang = "en";
 let currentPromptString = "Please ask caller for their 6-digit family safety code.";
+
+async function pairFamilyMember() {
+  const mPhoneInput = document.getElementById('memberPhoneInput');
+  const mNameInput = document.getElementById('memberNameInput');
+  const mPhone = mPhoneInput ? mPhoneInput.value.trim() : "";
+  const mName = mNameInput ? mNameInput.value.trim() : "Rahul (Son)";
+  const btn = document.getElementById('pairMemberBtn');
+
+  if (!mPhone) {
+    alert("Please enter a phone number to pair (e.g. +91 98765 00002 or 9876543210).");
+    return;
+  }
+
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = "Pairing...";
+  }
+
+  try {
+    const res = await fetch('/api/pair', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        member_phone: mPhone,
+        member_name: mName
+      })
+    });
+    const result = await res.json();
+    if (res.ok && result.status === 'PAIRED') {
+      const banner = document.getElementById('verifyResult');
+      if (banner) {
+        banner.className = 'result-banner success';
+        banner.innerHTML = `&#10004; PAIRED: Connected with ${result.member_name} (${result.member_phone})!<br>Directional zero-knowledge keys generated and saved in local encrypted vault.`;
+        banner.style.display = 'block';
+      }
+      alert(`✔ Successfully paired with ${result.member_name} (${result.member_phone})!\nBoth devices are now synchronized with 60-second rotating directional codes.`);
+      await updateStatus();
+    } else {
+      alert("Pairing failed: " + (result.error || "Unknown error"));
+    }
+  } catch (err) {
+    alert("Network or pairing request error: " + err);
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = "Pair Member";
+    }
+  }
+}
 
 function updateKeypadDisplay() {
   const display = document.getElementById('keypadScreen');
@@ -1636,10 +1838,28 @@ class FVSRequestHandler(http.server.BaseHTTPRequestHandler):
 
         if url.path == "/api/pair":
             try:
-                g_phone = req_data.get("guardian_phone", "")
+                g_phone = req_data.get("guardian_phone") or STATE.guardian_phone
+                m_phone = req_data.get("member_phone") or STATE.member_phone
+                m_name = req_data.get("member_name") or STATE.member_name or "Rahul (Son)"
+                res = STATE.pair_devices(g_phone, m_phone, m_name)
+                self._send_json(200, res)
+            except Exception as e:
+                self._send_json(400, {"error": str(e)})
+
+        elif url.path == "/api/invite":
+            try:
                 m_phone = req_data.get("member_phone", "")
                 m_name = req_data.get("member_name", "Rahul (Son)")
-                res = STATE.pair_devices(g_phone, m_phone, m_name)
+                host = self.headers.get("Host") or "192.168.137.230:8080"
+                record = STATE.create_pairing_invitation(m_phone, m_name, host_ip=host)
+                self._send_json(200, record)
+            except Exception as e:
+                self._send_json(400, {"error": str(e)})
+
+        elif url.path == "/api/confirm_pin":
+            try:
+                pin = req_data.get("pin", "")
+                res = STATE.confirm_pairing_pin(pin)
                 self._send_json(200, res)
             except Exception as e:
                 self._send_json(400, {"error": str(e)})
