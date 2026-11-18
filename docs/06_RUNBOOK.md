@@ -122,6 +122,56 @@ Open `http://localhost:8080/` in any browser:
 
 ---
 
-## 5. Resetting State
+## 5. Realistic Telephony Replay & Scenario Evaluation (Phase 8)
+
+Family Voice Shield includes a standalone CLI replay runner that simulates G.711 carrier-grade telephony audio streaming through the full detection pipeline:
+
+### 5.1 List All Scenarios
+```bash
+python -m demo.telephony_replay --list
+```
+
+### 5.2 Run All 5 Evaluation Scenarios with SLA Checks
+```bash
+python -m demo.telephony_replay --all
+```
+Expected output:
+```
+================================================================
+  Scenario S1: Fake Accident – UPI Demand
+================================================================
+  Category        : SCAM
+  Expected tier   : 🔴 RED
+  Actual tier     : 🔴 RED
+  All tiers match : ✅ YES
+  Time to AMBER   : 4.0s (target ≤ 4.0s)  [✅ SLA MET]
+  Time to RED     : 6.0s (target ≤ 6.0s)
+  Pipeline Latency : p50=2.8ms  p95=2.9ms  max=2.9ms
+  Channel Simulator: G.711 Telephony (8kHz bandpass)
+
+  Chunk Progression:
+    [0] 🟢 GREEN    risk=0.001 lat= 2.9ms ✅ "Hello mummy, main aapka beta bol raha hoon, phone su…"
+    ...
+```
+
+### 5.3 Run a Single Named Scenario with JSON Output
+```bash
+python -m demo.telephony_replay --scenario S2 --json
+```
+
+### 5.4 Live Interactive Walkthrough via Web Simulator
+Launch the browser UI:
+```bash
+python demo/web_simulator.py 8080
+```
+Open `http://localhost:8080/`:
+- **Scenario Selector**: Select any scenario (`S1`–`S5`) from the top evaluation bar.
+- **Run Entire Scenario**: Replays the full multi-window call with real-time SLA badge verification.
+- **Step Next Chunk**: Advances window-by-window for interactive presentations.
+- **Live Event Log**: Inspects real-time risk scores, latencies, and audible bilingual TTS guidance.
+
+---
+
+## 6. Resetting State
 - **Server sessions**: Automatically expire in memory after TTL; restart server or send `{"type": "end"}` to terminate immediately.
 - **Client Vault**: Vault records and strike counters can be reset via the simulator UI ("Reset Strikes") or by re-instantiating fresh in-memory `SecureVault` instances.
