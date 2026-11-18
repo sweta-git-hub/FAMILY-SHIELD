@@ -12,7 +12,9 @@ import time
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
 
+from core.alert_tiers import AlertStateMachine, AlertTier, AlertTransition, EmergencyNotification
 from ml.antispoof_engine import BaseAntiSpoofEngine, create_antispoof_engine
+from ml.fusion import FusionResult, MultimodalFusionEngine
 from ml.scam_classifier import ClassificationResult, NoisyOrScamClassifier
 from ml.stt_engine import BaseSTTEngine, create_stt_engine
 from server.chunker import AudioChunk
@@ -23,13 +25,14 @@ class RiskScore:
     """Contract-compliant risk score frame per docs/07_API_CONTRACTS.md."""
     type: str = "score"
     t: float = 0.0
-    s_a: float = 0.0      # Acoustic synthetic score [0.0 - 1.0] (Real Phase 6)
-    s_t: float = 0.0      # Semantic scam language score [0.0 - 1.0] (Real Phase 5)
+    s_a: float = 0.0      # Acoustic synthetic score [0.0 - 1.0] (Phase 6)
+    s_t: float = 0.0      # Semantic scam language score [0.0 - 1.0] (Phase 5)
     s_c: float = 0.0      # Call context risk score [0.0 - 1.0]
-    risk: float = 0.0     # Fused risk probability [0.0 - 1.0]
+    risk: float = 0.0     # Fused risk probability [0.0 - 1.0] (Phase 7 Calibrated Logistic)
     tier: str = "GREEN"   # GREEN (<0.40), AMBER (0.40 - 0.70), RED (>0.70)
     reasons: List[str] = field(default_factory=list)
     prompt: str = "normal"
+    dominant_modality: str = "none" # 'acoustic', 'semantic', 'context' (Phase 7)
     mock: bool = False    # Real acoustic & semantic scoring active
 
     def to_dict(self) -> Dict[str, Any]:
@@ -43,29 +46,34 @@ class RiskScore:
             "tier": self.tier,
             "reasons": self.reasons,
             "prompt": self.prompt,
+            "dominant_modality": self.dominant_modality,
             "mock": self.mock,
         }
 
 
 class StreamScorer:
-    """Production stream scorer integrating STT, Noisy-OR scam classifier, and acoustic anti-spoofing."""
+    """Production stream scorer integrating STT, scam classifier, anti-spoofing, and logistic fusion."""
 
     def __init__(
         self,
         stt_engine: Optional[BaseSTTEngine] = None,
         classifier: Optional[NoisyOrScamClassifier] = None,
         antispoof_engine: Optional[BaseAntiSpoofEngine] = None,
+        fusion_engine: Optional[MultimodalFusionEngine] = None,
+        alert_state_machine: Optional[AlertStateMachine] = None,
         baseline_acoustic_risk: float = 0.10,
         is_mock: bool = False,
     ) -> None:
         self.stt_engine = stt_engine or create_stt_engine()
         self.classifier = classifier or NoisyOrScamClassifier()
         self.antispoof_engine = antispoof_engine or create_antispoof_engine()
+        self.fusion_engine = fusion_engine or MultimodalFusionEngine()
+        self.alert_state_machine = alert_state_machine or AlertStateMachine()
         self.baseline_acoustic_risk = baseline_acoustic_risk
         self.is_mock = is_mock
 
     def score_chunk(self, chunk: AudioChunk, call_context: Dict[str, Any] | None = None) -> RiskScore:
-        """Evaluates an audio chunk through STT, semantic classifier, and acoustic anti-spoof."""
+        """Evaluates an audio chunk through STT, anti-spoof, and multimodal logistic fusion."""
         context = call_context or {}
         unknown_number = bool(context.get("unknown_number", False))
         claims_relative = bool(context.get("claims_relative", False))
@@ -77,15 +85,21 @@ class StreamScorer:
         pcm_bytes = getattr(chunk, "data", getattr(chunk, "pcm_data", b""))
 
         if not chunk.has_speech:
+            tier, _ = self.alert_state_machine.update(
+                fused_risk=round(s_c * 0.5, 4),
+                reasons=[],
+                timestamp=chunk.timestamp_sec,
+            )
             return RiskScore(
                 t=chunk.timestamp_sec,
                 s_a=0.01,
                 s_t=0.02,
                 s_c=s_c,
                 risk=round(s_c * 0.5, 4),
-                tier="GREEN",
+                tier=tier.value,
                 reasons=[],
-                prompt="normal",
+                prompt=self.alert_state_machine.get_prompt_action(),
+                dominant_modality="none",
                 mock=self.is_mock,
             )
 
@@ -101,15 +115,9 @@ class StreamScorer:
         as_res = self.antispoof_engine.score_audio(pcm_bytes, sample_rate=16000)
         s_a = as_res.s_a
 
-        # 4. Composite fused risk calculation:
-        # Either severe acoustic spoofing (s_a >= 0.70) or severe scam intent (s_t >= 0.70)
-        # immediately elevates the composite risk to critical RED tier.
-        weighted_risk = 0.45 * s_t + 0.40 * s_a + 0.15 * s_c
-        fused_risk = max(
-            s_t if s_t >= 0.70 else 0.0,
-            s_a if s_a >= 0.70 else 0.0,
-            max(0.0, min(1.0, weighted_risk))
-        )
+        # 4. Multimodal Calibrated Logistic Fusion (Phase 7)
+        fusion_res = self.fusion_engine.fuse(s_a=s_a, s_t=s_t, s_c=s_c)
+        fused_risk = fusion_res.fused_risk
 
         reasons: List[str] = []
         for cat in clf_res.matched_categories:
@@ -123,15 +131,13 @@ class StreamScorer:
         if claims_relative:
             reasons.append("claims_relative")
 
-        if fused_risk >= 0.70:
-            tier = "RED"
-            prompt = "ask_for_code"
-        elif fused_risk >= 0.40:
-            tier = "AMBER"
-            prompt = "ask_for_code"
-        else:
-            tier = "GREEN"
-            prompt = "normal"
+        # 5. Alert Tier State Machine with Hysteresis
+        tier, transition = self.alert_state_machine.update(
+            fused_risk=fused_risk,
+            reasons=reasons,
+            timestamp=chunk.timestamp_sec,
+        )
+        prompt = self.alert_state_machine.get_prompt_action()
 
         is_mock_eval = self.is_mock or bool(getattr(stt_res, "is_mock", False) and getattr(as_res, "is_mock", False))
 
@@ -140,10 +146,11 @@ class StreamScorer:
             s_a=s_a,
             s_t=s_t,
             s_c=s_c,
-            risk=round(fused_risk, 4),
-            tier=tier,
+            risk=fused_risk,
+            tier=tier.value,
             reasons=reasons,
             prompt=prompt,
+            dominant_modality=fusion_res.dominant_modality,
             mock=is_mock_eval,
         )
 

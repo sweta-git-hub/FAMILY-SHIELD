@@ -134,6 +134,29 @@ if _HAS_FASTAPI:
                             context_keys=list(call_context.keys()),
                         )
 
+                    elif msg_type == "broadcast":
+                        # Dispatches signed emergency family notification (Phase 7)
+                        phone = data.get("phone", "+919876543210")
+                        last_risk = 0.85 if scorer.alert_state_machine.current_tier.value == "RED" else 0.50
+                        notif = scorer.alert_state_machine.generate_emergency_notification(
+                            target_phone=phone,
+                            fused_risk=last_risk,
+                            dominant_modality="multimodal_alert",
+                            reasons=["user_emergency_broadcast"],
+                        )
+                        await websocket.send_text(json.dumps({
+                            "type": "broadcast_ack",
+                            "notification": notif.to_dict(),
+                        }))
+                        log_event(
+                            logger,
+                            20,
+                            "ws_emergency_broadcast",
+                            "Emergency family notification dispatched",
+                            session_id=session_id,
+                            notification_id=notif.notification_id,
+                        )
+
                     elif msg_type == "end":
                         log_event(logger, 20, "stream_end_requested", "Client requested stream teardown", session_id=session_id)
                         await websocket.close(code=1000, reason="Normal stream end")
