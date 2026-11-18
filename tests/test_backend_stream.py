@@ -122,7 +122,8 @@ class TestBackendStreamEndpoints(unittest.TestCase):
             self.assertEqual(score_msg.get("type"), "score")
             self.assertIn("risk", score_msg)
             self.assertIn("tier", score_msg)
-            self.assertTrue(score_msg.get("mock"))
+            self.assertIn("mock", score_msg)
+            self.assertIsInstance(score_msg.get("mock"), bool)
 
             # Clean teardown
             ws.send_text(json.dumps({"type": "end"}))

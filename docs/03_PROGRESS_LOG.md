@@ -354,6 +354,17 @@
 - **Tests**: All 110 tests passing, documentation verified.
 - **Left off / next**: Phase 8 complete locally on `phase/08-demo-path`. Awaiting user instruction before pushing to GitHub.
 
+---
+
+### p9-fix-test | fix(test): resolve Phase 4 test assertion in test_backend_stream for StreamScorer mock field | phase/09-eval-hardening
+- **Built**:
+  - `tests/test_backend_stream.py`: Updated WebSocket score frame test to assert `"mock"` field exists and is boolean, accommodating live `StreamScorer` (`mock=False`).
+  - `docs/02_PHASE_PLAN.md`: Updated Phase 9 status to `IN PROGRESS` with detailed scope.
+- **Why**: Eliminate existing test failure caused by Phase 5/7 live scorer integration into streaming pipeline, restoring 100% test pass rate before adding Phase 9 suites.
+- **Decision**: Ensure contract compliance for `mock` field without forcing synthetic mock responses.
+- **Tests**: `python -m unittest discover tests` -> 110/110 tests passing in 1.82s.
+- **Next**: Implement comprehensive red-team test suite in Commit 2 (`tests/test_redteam.py`).
+
 
 
 
