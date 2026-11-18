@@ -1,4 +1,4 @@
-# HANDOFF (updated: 2026-11-18, Phase 5 DONE, Phase 6 TODO)
+# HANDOFF (updated: 2026-11-18, Phase 6 DONE, Phase 7 TODO)
 
 ## What this project is (3 lines)
 Family Voice Shield is an anti-voice-clone scam protection system for families.
@@ -6,8 +6,8 @@ It proves caller identity using an offline, zero-knowledge rotating family code 
 An accompanying AI warning layer (scam language + synthetic speech detection) automatically triggers the challenge prompt when risk is detected.
 
 ## Current state
-- Phase status: 0 DONE, 1 DONE, 2 DONE, 3 DONE, 4 DONE, 5 DONE, 6 TODO, 7 TODO, 8 TODO, 9 TODO, 10 TODO
-- Built in Phases 0, 1, 2, 3, 4 & 5:
+- Phase status: 0 DONE, 1 DONE, 2 DONE, 3 DONE, 4 DONE, 5 DONE, 6 DONE, 7 TODO, 8 TODO, 9 TODO, 10 TODO
+- Built in Phases 0, 1, 2, 3, 4, 5 & 6:
   - Repository monorepo layout (`core/`, `mobile/`, `server/`, `ml/`, `demo/`, `infra/`, `tests/`, `docs/`)
   - Complete documentation system (`docs/00` through `docs/08`)
   - `RULE.md` agent operating rules and permission gates
@@ -26,12 +26,15 @@ An accompanying AI warning layer (scam language + synthetic speech detection) au
   - Multilingual scam lexicon and taxonomy (`ml/scam_lexicon.py`) covering 6 categories across Hindi, English, and Hinglish
   - Probabilistic Noisy-OR Bayesian scam intent classifier (`ml/scam_classifier.py`)
   - Privacy-preserving in-memory STT engine wrapper (`ml/stt_engine.py`) supporting Faster-Whisper and mock testing
+  - Telephony channel and degradation codec simulator (`ml/telephony_codec.py`) supporting ITU-T G.711 $\mu$-law/A-law, 300-3400 Hz voice bandpass filter, 8 kHz decimation/resampling, and packet jitter simulation
+  - Acoustic anti-spoofing engine (`ml/antispoof_engine.py`) measuring ZCR variance, pitch stability, and crest factor, with carrier telephony compensation and ONNX runtime support
+  - Multimodal streaming scorer integrating live semantic score $s_t$ and acoustic spoof score $s_a$
   - Docker containerization (`infra/Dockerfile` and `infra/docker-compose.yml`)
   - Audio replay client (`server/client_replay.py`) and Flutter/Dart streaming client (`mobile/audio_stream_client.dart`)
-  - Comprehensive unit and integration test suite (68 total tests across 9 test suites in `tests/`).
+  - Comprehensive unit and integration test suite (80 total tests across 10 test suites in `tests/`).
 - Not built / left off:
-  - Phase 6: Acoustic Anti-Spoofing (telephony codec simulation, AASIST/ONNX inference)
-  - Phase 7: Multimodal Fusion & Client Alerts
+  - Phase 7: Multimodal Fusion & Client Alerts (logistic fusion calibration, alert tier thresholds, client notification hooks)
+  - Phase 8: Realistic End-to-End Demo Path
 - Known bugs and traps:
   - Call audio is not directly accessible by 3rd-party apps on standard iOS/Android; MVP uses speakerphone mic or Twilio stream.
   - Zero disk audio persistence must be strictly maintained (Rule 7).
@@ -59,4 +62,4 @@ An accompanying AI warning layer (scam language + synthetic speech detection) au
 - ADR-006: Pure 6-digit TOTP, 60s rotation, contact-based pairing with feature phone fallback.
 
 ## Next step
-Phase 5 is DONE. Awaiting user instruction before pushing to GitHub or proceeding to Phase 6: Acoustic Anti-Spoofing (`phase/06-antispoof`).
+Phase 6 is DONE. Awaiting user instruction before pushing to GitHub or proceeding to Phase 7: Multimodal Fusion & Client Alerts (`phase/07-fusion-alerts`).

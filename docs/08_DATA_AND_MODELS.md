@@ -31,6 +31,22 @@ where:
 - **Target Languages**: Hindi (`hi`), English (`en`), and code-mixed Hinglish.
 - **Rule 7 Compliance**: Zero audio or text persistence on disk.
 
-## 3. Data Privacy & Ethics Commitments
+## 3. Acoustic Anti-Spoofing & Telephony Models (Phase 6 Built)
+
+### 3.1 Acoustic Feature Metrics
+The acoustic anti-spoof detector (`ml/antispoof_engine.py`) extracts temporal and spectral metrics from 16 kHz 16-bit linear PCM frames:
+- **Zero-Crossing Rate (ZCR) Variance**: Normal human speech: $\sigma_{zcr}^2 \ge 0.005$. Flat vocoder speech: $\sigma_{zcr}^2 < 0.0025$ triggers `robotic_zcr_flatness`.
+- **Pitch Periodicity Stability**: Autocorrelation peak tracking across $80 - 400\text{ Hz}$. Stability $> 0.94$ triggers `hyper_periodic_pitch_lock`.
+- **Crest Factor**: Peak-to-RMS power ratio. Compounding vocoder compression with crest factor $< 2.2$ flags dynamic range squashing.
+- **Telephony Compensation**: Dampens false alarms by 25% when carrier bandpass signatures (attenuation above 3.4 kHz) are detected without synthetic robotic flatness.
+
+### 3.2 Telephony Codec Specifications
+The telephony simulator (`ml/telephony_codec.py`) reproduces carrier channel degradation:
+- **Bandpass Filter**: 2nd-order Butterworth cascaded HPF (300 Hz cutoff) + LPF (3400 Hz cutoff).
+- **Resampling**: Decimation from 16 kHz to 8 kHz and linear interpolation upsampling.
+- **ITU-T G.711 $\mu$-law / A-law**: Standard 8-bit logarithmic companding (RFC 3551).
+- **Packet Loss Simulation**: Configurable random packet drop rates (default $2-3\%$).
+
+## 4. Data Privacy & Ethics Commitments
 - Zero raw audio or transcripts stored on server.
 - Synthetic audio strictly generated with consent and prefixed `SYNTH_`.
