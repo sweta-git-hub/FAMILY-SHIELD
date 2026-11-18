@@ -193,6 +193,54 @@
 - **Tests**: Verified test suite passes and docs consistency.
 - **Left off / next**: Phase 5 complete. Awaiting user instruction before pushing to GitHub.
 
+### p6-codec | feat(ml): implement telephony codec simulator and degradation filter | phase/06-antispoof
+- **Built**:
+  - `ml/telephony_codec.py`: ITU-T G.711 $\mu$-law & A-law 8-bit companding/expansion, 300-3400 Hz 2nd-order Butterworth voice bandpass filter, 8 kHz narrowband decimation and linear interpolation upsampling, VoIP packet loss and jitter simulation.
+- **Why**: Carrier phone calls in India operate over compressed telephony channels (8 kHz, 300-3400 Hz); an anti-spoof model must evaluate degraded speech without false alarming.
+- **Decision**: Pure Python implementation with bit-exact table and arithmetic operations, zero disk storage (Rule 7).
+- **Tests**: G.711 round-trip quantization bound tests and bandpass frequency attenuation verification in `tests/test_antispoof.py`.
+- **Next**: Implement acoustic feature extractor and artifact detector in Commit 2.
+
+### p6-detector | feat(ml): implement acoustic feature extraction and artifact detector | phase/06-antispoof
+- **Built**:
+  - `ml/antispoof_engine.py`: `AcousticFeatureExtractor` measuring frame-level Zero-Crossing Rate (ZCR) variance, crest factor, and pitch stability.
+  - `AcousticArtifactDetector`: Calibrated detector identifying robotic pitch lock, low phonetic variance, and vocoder dynamic range compression, with telephony channel compensation.
+  - `ONNXAntiSpoofEngine` & `MockAntiSpoofEngine`: ONNX model inference wrapper with graceful zero-dependency fallback.
+- **Why**: Detect acoustic markers of AI voice clone synthesis and TTS vocoders in real-time.
+- **Decision**: Zero external dependencies (runs anywhere without requiring ONNX/Torch wheels) with pluggable ONNX interface.
+- **Tests**: Detection tests comparing robotic monotone sine waves ($s_a \ge 0.70$) vs dynamic human speech ($s_a \le 0.25$).
+- **Next**: Wire acoustic anti-spoof scoring into streaming pipeline in Commit 3.
+
+### p6-scorer | feat(server): wire acoustic anti-spoof scoring into streaming pipeline | phase/06-antispoof
+- **Built**:
+  - `server/scorer.py`: Upgraded `StreamScorer` to evaluate incoming PCM audio chunks through `BaseAntiSpoofEngine`.
+  - Replaced mock $s_a$ with live acoustic anti-spoof score.
+  - Connected fused risk calculation: either critical synthetic speech ($s_a \ge 0.70$) or critical scam language ($s_t \ge 0.70$) escalates to **RED** tier and commands `ask_for_code`.
+- **Why**: Provide true closed-loop multimodal protection combining voice clone detection with scam intent classification.
+- **Decision**: Preserved backward compatibility for `MockScorer` while activating live analysis for production streams.
+- **Tests**: Multi-chunk scoring integration tests.
+- **Next**: Add comprehensive test suite in Commit 4.
+
+### p6-tests | test(ml): add comprehensive test suite for telephony codec and anti-spoofing | phase/06-antispoof
+- **Built**:
+  - `tests/test_antispoof.py`: 12 test methods covering G.711 $\mu$-law/A-law fidelity, 8 kHz resampling, bandpass filter attenuation, packet loss, acoustic feature extraction, synthetic artifact detection, telephony compensation, and StreamScorer integration.
+- **Why**: Ensure 100% test pass rate across all new telephony and anti-spoof components.
+- **Decision**: Synthesize realistic test waveforms with syllabic prosody and consonant noise.
+- **Tests**: 80/80 total repository tests passing (`Ran 80 tests in 0.214s, OK`).
+- **Next**: Complete documentation updates in Commit 5.
+
+### p6-docs | docs(phase-6): update architecture, progress log, data models, and handoff | phase/06-antispoof
+- **Built**:
+  - `docs/01_ARCHITECTURE.md`: Documented Section 5 (Acoustic Anti-Spoofing & Telephony Codec Pipeline).
+  - `docs/02_PHASE_PLAN.md`: Marked Phase 6 as DONE.
+  - `docs/08_DATA_AND_MODELS.md`: Documented Section 3 (Acoustic Feature Metrics & Telephony Codec Specifications).
+  - `docs/03_PROGRESS_LOG.md`: Appended entries for Commits 1-5.
+  - `HANDOFF.md`: Updated to Phase 6 DONE, ready for Phase 7.
+- **Why**: Keep documentation fully synchronized with code implementations.
+- **Decision**: Detail mathematical and architectural specifications for next agent.
+- **Tests**: Verified test suite passes and docs consistency.
+- **Left off / next**: Phase 6 complete locally on `phase/06-antispoof`. Awaiting user instruction before pushing to GitHub.
+
 
 
 

@@ -10,7 +10,7 @@
 | 3 | Verify-Caller UX | `phase/03-verify-flow` | Big buttons, Hindi/English TTS, practice call | DONE | core/elderly_ux.py, tests/test_elderly_ux.py, demo/web_simulator.py | Ready for Phase 4 | - |
 | 4 | Backend Stream | `phase/04-backend-stream` | FastAPI, WebSocket audio stream, chunker | DONE | server/main.py, server/chunker.py, server/session.py, server/scorer.py, server/client_replay.py, mobile/audio_stream_client.dart, infra/Dockerfile, tests/test_backend_stream.py | Ready for Phase 5 | - |
 | 5 | Scam Engine | `phase/05-scam-engine` | STT wrapper, lexicon, noisy-OR classifier | DONE | ml/scam_lexicon.py, ml/scam_classifier.py, ml/stt_engine.py, server/scorer.py, server/stream.py, tests/test_scam_engine.py | Ready for Phase 6 | - |
-| 6 | Anti-Spoof | `phase/06-antispoof` | Telephony simulator, ONNX model inference | TODO | - | - | - |
+| 6 | Anti-Spoof | `phase/06-antispoof` | Telephony simulator, ONNX model inference | DONE | ml/telephony_codec.py, ml/antispoof_engine.py, server/scorer.py, tests/test_antispoof.py | Ready for Phase 7 | - |
 | 7 | Fusion & Alerts | `phase/07-fusion-alerts` | Logistic fusion, alert tiers, client triggers | TODO | - | - | - |
 | 8 | Realistic Demo | `phase/08-demo-path` | Telephony/replay demo path, scripted cases | TODO | - | - | - |
 | 9 | Eval & Hardening | `phase/09-eval-hardening` | Red-team tests, privacy audit, metrics report | TODO | - | - | - |
@@ -166,6 +166,42 @@
   - Multiple compound scam indicators (e.g. digital arrest + urgency + UPI payment) yield $s_t \ge 0.70$ (RED tier).
   - Zero audio bytes or intermediate transcripts are persisted to disk (Rule 7).
   - 100% automated test pass rate across unit and integration tests.
+
+### Phase 6: Acoustic Anti-Spoofing and Telephony Simulator
+- **Branch**: `phase/06-antispoof`
+- **Time-box**: 2.5 h
+- **Status**: DONE
+- **Goal and Objectives**:
+  - Implement acoustic synthetic speech (deepfake / voice clone) detection generating calibrated score $s_a \in [0.0, 1.0]$.
+  - Implement telephony degradation and codec simulator (G.711 mu-law/A-law, 8 kHz downsampling, bandpass 300-3400 Hz, packet jitter) to evaluate detector robustness on low-bitrate carrier voice calls.
+  - Extract acoustic spectral and temporal features (ZCR, spectral flatness, energy dynamics, harmonic periodicity) without external dependencies.
+  - Provide ONNX runtime inference model wrapper with graceful fallback to calibrated acoustic artifact detector.
+  - Integrate acoustic scoring into the streaming server pipeline (`server/scorer.py`), actively updating $s_a$ in WebSocket score frames.
+- **In scope**:
+  - Telephony codec simulator (`ml/telephony_codec.py`): G.711 $\mu$-law/A-law companding, 8 kHz resampling, 300-3400 Hz bandpass filtering, packet loss simulation.
+  - Acoustic feature extraction & anti-spoof inference (`ml/antispoof_engine.py`): Zero-Crossing Rate (ZCR) variance, spectral dynamics, high-frequency energy ratios, ONNX wrapper, and mock engine.
+  - Stream scorer integration (`server/scorer.py`): Replacing mock $s_a$ with live acoustic anti-spoof evaluation.
+  - Comprehensive unit and integration test suite (`tests/test_antispoof.py`).
+  - Documentation updates across `docs/01_ARCHITECTURE.md`, `docs/02_PHASE_PLAN.md`, `docs/03_PROGRESS_LOG.md`, `docs/08_DATA_AND_MODELS.md`, and `HANDOFF.md`.
+- **Out of scope**:
+  - Multimodal logistic regression fusion calibration (Phase 7).
+  - FCM push notifications to family members (Phase 7).
+- **Planned Commits (6 commits)**:
+  1. `feat(ml): implement telephony codec simulator and degradation filter`
+  2. `feat(ml): implement acoustic feature extraction and artifact detector`
+  3. `feat(ml): implement onnx anti-spoof model wrapper with mock fallback`
+  4. `feat(server): wire acoustic anti-spoof scoring into streaming pipeline`
+  5. `test(ml): add comprehensive test suite for telephony codec and anti-spoofing`
+  6. `docs(phase-6): update architecture, progress log, data models, and handoff`
+- **Acceptance criteria**:
+  - Telephony codec simulator supports round-trip G.711 $\mu$-law/A-law compression and 8 kHz resampling.
+  - Acoustic anti-spoof engine computes calibrated $s_a \in [0.0, 1.0]$.
+  - Synthetic test tones and vocoder-like artifacts trigger elevated $s_a \ge 0.70$.
+  - Natural speech with typical human dynamic variation produces low $s_a \le 0.25$.
+  - Server streaming scorer outputs real $s_a$ alongside real $s_t$ without latency degradation.
+  - Zero raw audio bytes are persisted to disk or permanent storage.
+  - 100% automated test pass rate.
+
 
 
 

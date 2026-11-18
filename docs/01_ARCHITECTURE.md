@@ -127,3 +127,30 @@ Organizes social engineering indicators into 6 core threat categories:
    - Authority + Secrecy + Financial: $s_t \approx 0.99$ (Triggering immediate RED alert tier).
 3. **StreamScorer Integration**:
    - Semantic scam score $s_t$ feeds directly into the real-time stream feedback, replacing Phase 4 mock placeholders and dynamically setting risk tier (`GREEN`, `AMBER`, `RED`) and prompt instructions (`normal` vs `ask_for_code`).
+
+---
+
+## 5. Acoustic Anti-Spoofing & Telephony Codec Pipeline (Phase 6)
+
+### 5.1 Telephony Codec & Channel Degradation Simulator (`ml/telephony_codec.py`)
+Carrier voice calls in India and globally operate over legacy 2G/3G narrowband cellular channels, VoLTE, or VoIP:
+1. **Bandpass Filtering (300 Hz - 3400 Hz)**: Cascaded 2nd-order Butterworth filters attenuate low rumbles ($<300\text{ Hz}$) and high frequencies ($>3400\text{ Hz}$) characteristic of carrier telephony.
+2. **Narrowband Resampling (8 kHz)**: Antialiasing 2:1 decimation from 16 kHz to 8 kHz and linear interpolation upsampling.
+3. **ITU-T G.711 Companding ($\mu$-law / A-law)**:
+   - Logarithmic 8-bit companding ($F(x) = \text{sgn}(x) \frac{\ln(1 + \mu |x|)}{\ln(1 + \mu)}$ with $\mu=255$) introduces quantization noise characteristic of PSTN/cellular circuits.
+4. **Packet Jitter & Loss Simulation**: Simulates carrier network drops by zeroing discrete 10ms/20ms voice frames.
+5. **Purpose**: Prevents anti-spoofing detectors from triggering false-positive deepfake warnings on legitimate phone calls compressed by carrier networks.
+
+### 5.2 Acoustic Feature Extraction & Artifact Detection (`ml/antispoof_engine.py`)
+1. **Feature Extraction (`AcousticFeatureExtractor`)**:
+   - **Zero-Crossing Rate (ZCR) Variance**: Measures prosodic and phonetic transition dynamics between voiced vowels and unvoiced consonants. Natural speech exhibits high dynamic variance ($\sigma_{zcr}^2 \ge 0.005$), whereas synthetic/concatenated speech exhibits unnaturally flat ZCR distributions.
+   - **Pitch Periodicity & Autocorrelation Stability**: Tracks harmonic consistency across $80\text{ Hz} - 400\text{ Hz}$. Hyper-periodic pitch lock ($>0.94$) triggers synthetic voice warnings.
+   - **Crest Factor / Energy Dynamics**: Detects dynamic range compression typical of neural vocoders.
+   - **Telephony Compensation**: Dampens acoustic spoof probabilities when carrier bandpass signatures are detected without abnormal robotic flatness.
+2. **Inference Wrappers**:
+   - **`ONNXAntiSpoofEngine`**: Optional inference session for AASIST / RawNet ONNX models.
+   - **`AcousticArtifactDetector`**: Pure-Python zero-dependency detector executing deterministically in any environment.
+   - **`MockAntiSpoofEngine`**: In-memory mock engine for deterministic CI verification.
+3. **Multimodal Scoring (`server/scorer.py`)**:
+   - `StreamScorer` evaluates incoming 16 kHz PCM chunks with both STT (Phase 5) and Acoustic Anti-Spoof (Phase 6).
+   - If either $s_a \ge 0.70$ (synthetic voice clone detected) or $s_t \ge 0.70$ (critical scam language detected), fused risk elevates immediately to **RED** tier and commands `ask_for_code`.
