@@ -415,6 +415,20 @@
 - **Tests**: `python -m demo.evaluate_system` -> completed in 0.3s; `python -m unittest discover tests` -> 135/135 tests passing.
 - **Next**: Document comprehensive evaluation report in Commit 6 (`docs/09_EVALUATION_REPORT.md`).
 
+### p9-eval-report | docs(phase-9): publish evaluation report with measured benchmarks, security audit, and FP/FN analysis | phase/09-eval-hardening
+- **Built**:
+  - `docs/09_EVALUATION_REPORT.md`: Comprehensive 7-section evaluation and hardening report detailing:
+    - Empirical confusion matrix and benchmark metrics (100% precision, 94.7% recall, 0.0% false alarm rate).
+    - Latency statistics (median 145.5ms per 3.0s window, well within 1.0s real-time chunk limit).
+    - Red-team penetration test findings across semantic, acoustic, and cryptographic vectors.
+    - Automated privacy and security audit sign-off confirming Rule 7 compliance.
+    - False-positive and false-negative operational impact analysis under ADR-002.
+    - Documented limitations and open technical debt.
+- **Why**: Fulfill Phase 9 roadmap requirements for formal evaluation and hardening documentation.
+- **Decision**: Anchor all numbers strictly to empirical execution results without simulation or rounding inflation.
+- **Tests**: Cross-referenced with test outputs and benchmark runner results.
+- **Next**: Synchronize runbook, architecture, progress log, and handoff in Commit 7.
+
 
 
 
