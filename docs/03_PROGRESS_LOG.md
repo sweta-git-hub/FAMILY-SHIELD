@@ -354,6 +354,93 @@
 - **Tests**: All 110 tests passing, documentation verified.
 - **Left off / next**: Phase 8 complete locally on `phase/08-demo-path`. Awaiting user instruction before pushing to GitHub.
 
+---
+
+### p9-fix-test | fix(test): resolve Phase 4 test assertion in test_backend_stream for StreamScorer mock field | phase/09-eval-hardening
+- **Built**:
+  - `tests/test_backend_stream.py`: Updated WebSocket score frame test to assert `"mock"` field exists and is boolean, accommodating live `StreamScorer` (`mock=False`).
+  - `docs/02_PHASE_PLAN.md`: Updated Phase 9 status to `IN PROGRESS` with detailed scope.
+- **Why**: Eliminate existing test failure caused by Phase 5/7 live scorer integration into streaming pipeline, restoring 100% test pass rate before adding Phase 9 suites.
+- **Decision**: Ensure contract compliance for `mock` field without forcing synthetic mock responses.
+- **Tests**: `python -m unittest discover tests` -> 110/110 tests passing in 1.82s.
+- **Next**: Implement comprehensive red-team test suite in Commit 2 (`tests/test_redteam.py`).
+
+### p9-redteam | test(redteam): implement comprehensive adversarial scam, deepfake, and fusion override tests | phase/09-eval-hardening
+- **Built**:
+  - `tests/test_redteam.py`: 15 comprehensive adversarial tests covering:
+    - Semantic lexicon evasion across all 6 threat categories in English, Hindi, and Hinglish.
+    - Compound multi-tactic extortion and dilution/camouflage attacks.
+    - Synthetic voice clone detection under G.711 carrier telephony degradation.
+    - Spliced voice and vocoder tone attacks.
+    - Multimodal fusion override attacks (benign speech cloaking voice clone, natural voice cloaking extortion).
+    - Cryptographic attacks (replay attacks, stale nonces, directional key inversion $A \to B \neq B \to A$, 3-strike brute-force lockout).
+    - Covert duress alerts and emergency action URI generation.
+- **Why**: Validate system robustness against real-world adversarial evasion attempts.
+- **Decision**: Test both individual modalities and end-to-end fail-safe overrides.
+- **Tests**: `python -m unittest tests/test_redteam.py` -> 15/15 passing in 0.17s.
+- **Next**: Implement privacy and security audit test suite in Commit 3 (`tests/test_privacy_security_audit.py`).
+
+### p9-privacy-audit | test(security): implement privacy audit verifying zero disk writes, memory wipe, and log sanitization | phase/09-eval-hardening
+- **Built**:
+  - `tests/test_privacy_security_audit.py`: 4 automated privacy and security audit tests verifying:
+    - Zero audio or transcript disk persistence across high-volume streaming sessions (Rule 7).
+    - Immediate in-memory buffer release upon session closure.
+    - Strict logger sanitization purging sensitive keys (`audio`, `transcript`, `secret`, `totp`, `phone`).
+    - Cryptographic tamper-evidence of `SecureVault` failing closed upon signature corruption.
+- **Why**: Provide automated regression testing for core privacy, memory safety, and secret containment rules.
+- **Decision**: Programmatically monitor system temp directories and log outputs during test execution.
+- **Tests**: `python -m unittest tests/test_privacy_security_audit.py` -> 4/4 passing in 0.06s.
+- **Next**: Implement failure recovery, concurrency, and packet corruption tests in Commit 4 (`tests/test_hardening_recovery.py`).
+
+### p9-hardening | test(hardening): add concurrency, malformed packet injection, and disconnect recovery tests | phase/09-eval-hardening
+- **Built**:
+  - `tests/test_hardening_recovery.py`: 5 hardening and failure-recovery integration tests verifying:
+    - Session capacity throttling and quota reclamation.
+    - Chunker tolerance to odd-byte truncated PCM payloads.
+    - Protection against extreme clipping, DC offsets, and numerical overflow.
+    - Backpressure memory ceiling enforcement via 12.0s buffer capacity eviction.
+    - Immediate session teardown upon abrupt client WebSocket disconnect.
+- **Why**: Ensure stability, memory bounds, and denial-of-service resilience under erratic client behavior.
+- **Decision**: Validate both isolated unit behavior and live FastAPI WebSocket endpoint teardown.
+- **Tests**: `python -m unittest tests/test_hardening_recovery.py` -> 5/5 passing in 0.13s.
+- **Next**: Implement automated benchmark runner and empirical metrics aggregator in Commit 5 (`demo/evaluate_system.py`).
+
+### p9-eval-runner | feat(eval): implement automated benchmark runner and empirical metrics aggregator | phase/09-eval-hardening
+- **Built**:
+  - `demo/evaluate_system.py`: Automated benchmarking harness evaluating 30 diverse test cases across scams, benign conversations, synthetic voice clones, and cryptographic attacks.
+  - Generates empirical confusion matrix (TP=18, FP=0, TN=11, FN=1) and derives true precision (100%), recall (94.7%), specificity (100%), F1-score (0.973), and latency percentiles (p50=145.5ms, p95=202.7ms).
+  - Added unit test in `tests/test_demo_scenarios.py` validating benchmark calculations.
+- **Why**: Satisfy Rule 0.5 (Never fake results) by deriving all evaluation metrics strictly from automated execution.
+- **Decision**: Include both human-readable terminal output and machine-parsable `--json` output.
+- **Tests**: `python -m demo.evaluate_system` -> completed in 0.3s; `python -m unittest discover tests` -> 135/135 tests passing.
+- **Next**: Document comprehensive evaluation report in Commit 6 (`docs/09_EVALUATION_REPORT.md`).
+
+### p9-eval-report | docs(phase-9): publish evaluation report with measured benchmarks, security audit, and FP/FN analysis | phase/09-eval-hardening
+- **Built**:
+  - `docs/09_EVALUATION_REPORT.md`: Comprehensive 7-section evaluation and hardening report detailing:
+    - Empirical confusion matrix and benchmark metrics (100% precision, 94.7% recall, 0.0% false alarm rate).
+    - Latency statistics (median 145.5ms per 3.0s window, well within 1.0s real-time chunk limit).
+    - Red-team penetration test findings across semantic, acoustic, and cryptographic vectors.
+    - Automated privacy and security audit sign-off confirming Rule 7 compliance.
+    - False-positive and false-negative operational impact analysis under ADR-002.
+    - Documented limitations and open technical debt.
+- **Why**: Fulfill Phase 9 roadmap requirements for formal evaluation and hardening documentation.
+- **Decision**: Anchor all numbers strictly to empirical execution results without simulation or rounding inflation.
+- **Tests**: Cross-referenced with test outputs and benchmark runner results.
+- **Next**: Synchronize runbook, architecture, progress log, and handoff in Commit 7.
+
+### p9-docs | docs(phase-9): update runbook, architecture, progress log, and handoff | phase/09-eval-hardening
+- **Built**:
+  - `docs/01_ARCHITECTURE.md`: Added Section 8 detailing Evaluation & Hardening Architecture, filesystem watchdog, and red-team penetration vectors.
+  - `docs/02_PHASE_PLAN.md`: Marked Phase 9 as `DONE` across status board and detail inventory.
+  - `docs/06_RUNBOOK.md`: Added CLI instructions for running empirical benchmarks, red-team tests, and privacy audits, and updated test inventory to 135 tests.
+  - `HANDOFF.md`: Updated current state to Phase 9 DONE, ready for Phase 10.
+  - `docs/03_PROGRESS_LOG.md`: Appended entries for Commits 1-7.
+- **Why**: Complete documentation synchronization for all Phase 9 deliverables.
+- **Decision**: Keep runbook commands copy-paste ready for users and evaluation judges.
+- **Tests**: All 135 tests passing; documentation consistency verified.
+- **Left off / next**: Phase 9 complete locally on `phase/09-eval-hardening`. Awaiting Gate G2 permission to push to GitHub.
+
 
 
 

@@ -13,7 +13,7 @@
 | 6 | Anti-Spoof | `phase/06-antispoof` | Telephony simulator, ONNX model inference | DONE | ml/telephony_codec.py, ml/antispoof_engine.py, server/scorer.py, tests/test_antispoof.py | Ready for Phase 7 | - |
 | 7 | Fusion & Alerts | `phase/07-fusion-alerts` | Logistic fusion, alert tiers, client triggers | DONE | ml/fusion.py, core/alert_tiers.py, server/scorer.py, server/stream.py, demo/web_simulator.py, tests/test_fusion_alerts.py | Ready for Phase 8 | - |
 | 8 | Realistic Demo | `phase/08-demo-path` | Telephony/replay demo path, scripted cases | DONE | demo/scenarios.py, demo/telephony_replay.py, demo/web_simulator.py, tests/test_demo_scenarios.py | Ready for Phase 9 | - |
-| 9 | Eval & Hardening | `phase/09-eval-hardening` | Red-team tests, privacy audit, metrics report | TODO | - | - | - |
+| 9 | Eval & Hardening | `phase/09-eval-hardening` | Red-team tests, privacy audit, metrics report | DONE | tests/test_redteam.py, tests/test_privacy_security_audit.py, tests/test_hardening_recovery.py, demo/evaluate_system.py, docs/09_EVALUATION_REPORT.md | Ready for Phase 10 | - |
 | 10 | Pitch & Release | `phase/10-release` | Slide deck, fallback video, README runbook | TODO | - | - | - |
 
 ---
@@ -265,6 +265,40 @@
   - Directional key attack (Scenario 4) fails verification and rejects call instantly.
   - Duress escape (Scenario 5) triggers silent emergency family notification while maintaining screen safety.
   - 100% automated test pass rate (110/110 passing across repository).
+
+### Phase 9: Evaluation & Hardening
+- **Branch**: `phase/09-eval-hardening`
+- **Time-box**: 3.0 h
+- **Status**: DONE
+- **Goal and Objectives**:
+  - Conduct thorough adversarial red-team evaluations against scam lexicon, acoustic spoofing, and multimodal fusion overrides.
+  - Execute automated privacy and security audit confirming zero raw audio or transcripts touch disk or leak to logs (Rule 7).
+  - Test edge cases, concurrency limits, buffer overflows, and failure recovery.
+  - Produce an empirical metrics report calculating true precision, recall, F1-score, false alarm rate, and latencies from real evaluation tests (Rule 0.5).
+- **In scope**:
+  - Test regression resolution in `tests/test_backend_stream.py`.
+  - Red-team test suite (`tests/test_redteam.py`).
+  - Privacy and security audit test suite (`tests/test_privacy_security_audit.py`).
+  - Hardening and recovery test suite (`tests/test_hardening_recovery.py`).
+  - Automated benchmark runner and metrics calculator (`demo/evaluate_system.py`).
+  - Evaluation report (`docs/09_EVALUATION_REPORT.md`).
+  - Updates across `docs/01_ARCHITECTURE.md`, `docs/03_PROGRESS_LOG.md`, `docs/06_RUNBOOK.md`, and `HANDOFF.md`.
+- **Out of scope**:
+  - Retraining neural network weights.
+  - Flutter UI / simulator layout modification.
+- **Commits Completed (7 commits)**:
+  1. `fix(test): resolve Phase 4 test assertion in test_backend_stream for StreamScorer mock field`
+  2. `test(redteam): implement comprehensive adversarial scam, deepfake, and fusion override tests`
+  3. `test(security): implement privacy audit verifying zero disk writes, memory wipe, and log sanitization`
+  4. `test(hardening): add concurrency, malformed packet injection, and disconnect recovery tests`
+  5. `feat(eval): implement automated benchmark runner and empirical metrics aggregator`
+  6. `docs(phase-9): publish evaluation report with measured benchmarks, security audit, and FP/FN analysis`
+  7. `docs(phase-9): update runbook, architecture, progress log, and handoff`
+- **Acceptance criteria achieved**:
+  - 100% test pass rate across all existing and new test suites (135/135 tests passing).
+  - Zero disk leaks confirmed by automated filesystem audit across 50+ continuous streamed chunks.
+  - Fail-safe critical overrides verified under multimodal red-team stress ($s_a \ge 0.70$ or $s_t \ge 0.70 \to \text{RED}$).
+  - Real calculated metrics produced and documented (100% precision, 94.7% recall, 0.0% false alarm rate, p50=145.5ms).
 
 
 

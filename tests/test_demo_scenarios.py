@@ -264,5 +264,20 @@ class TestTelephonyReplayCLI(unittest.TestCase):
         self.assertIn("✅ SLA MET", out)
 
 
+class TestSystemEvaluationRunner(unittest.TestCase):
+    """Validates the 30-case empirical evaluation runner."""
+
+    def test_evaluate_system_metrics(self) -> None:
+        from demo.evaluate_system import evaluate_system
+        res = evaluate_system()
+        self.assertIn("summary", res)
+        s = res["summary"]
+        self.assertEqual(s["total_cases"], 30)
+        self.assertGreaterEqual(s["precision"], 0.90)
+        self.assertGreaterEqual(s["recall"], 0.90)
+        self.assertLessEqual(s["false_positive_rate"], 0.05)
+        self.assertGreater(s["latency_p50_ms"], 0.0)
+
+
 if __name__ == "__main__":
     unittest.main()
