@@ -11,7 +11,7 @@
 | 4 | Backend Stream | `phase/04-backend-stream` | FastAPI, WebSocket audio stream, chunker | DONE | server/main.py, server/chunker.py, server/session.py, server/scorer.py, server/client_replay.py, mobile/audio_stream_client.dart, infra/Dockerfile, tests/test_backend_stream.py | Ready for Phase 5 | - |
 | 5 | Scam Engine | `phase/05-scam-engine` | STT wrapper, lexicon, noisy-OR classifier | DONE | ml/scam_lexicon.py, ml/scam_classifier.py, ml/stt_engine.py, server/scorer.py, server/stream.py, tests/test_scam_engine.py | Ready for Phase 6 | - |
 | 6 | Anti-Spoof | `phase/06-antispoof` | Telephony simulator, ONNX model inference | DONE | ml/telephony_codec.py, ml/antispoof_engine.py, server/scorer.py, tests/test_antispoof.py | Ready for Phase 7 | - |
-| 7 | Fusion & Alerts | `phase/07-fusion-alerts` | Logistic fusion, alert tiers, client triggers | TODO | - | - | - |
+| 7 | Fusion & Alerts | `phase/07-fusion-alerts` | Logistic fusion, alert tiers, client triggers | DONE | ml/fusion.py, core/alert_tiers.py, server/scorer.py, server/stream.py, demo/web_simulator.py, tests/test_fusion_alerts.py | Ready for Phase 8 | - |
 | 8 | Realistic Demo | `phase/08-demo-path` | Telephony/replay demo path, scripted cases | TODO | - | - | - |
 | 9 | Eval & Hardening | `phase/09-eval-hardening` | Red-team tests, privacy audit, metrics report | TODO | - | - | - |
 | 10 | Pitch & Release | `phase/10-release` | Slide deck, fallback video, README runbook | TODO | - | - | - |
@@ -201,6 +201,41 @@
   - Server streaming scorer outputs real $s_a$ alongside real $s_t$ without latency degradation.
   - Zero raw audio bytes are persisted to disk or permanent storage.
   - 100% automated test pass rate.
+
+### Phase 7: Multimodal Fusion & Client Alerts
+- **Branch**: `phase/07-fusion-alerts`
+- **Time-box**: 2.5 h
+- **Status**: DONE
+- **Goal and Objectives**:
+  - Formulate calibrated logistic / generalized linear multimodal fusion model combining acoustic spoof score $s_a$, semantic scam score $s_t$, and contextual metadata $s_c$.
+  - Implement alert tier state machine with hysteresis debouncing (GREEN, AMBER, RED) to prevent rapid flickering on boundary conditions.
+  - Implement client trigger engine generating real-time UI action commands (`normal`, `ask_for_code`, `emergency_broadcast`).
+  - Implement emergency notification dispatch hook preparing signed family broadcast alerts.
+  - Integrate multimodal fusion and alert engine into `server/scorer.py` and dual-device web simulator.
+- **In scope**:
+  - Multimodal logistic fusion engine (`ml/fusion.py`): calibrated sigmoid formulation with logit transforms and extreme threat overrides.
+  - Alert tier state machine (`core/alert_tiers.py`): hysteresis smoothing, fast escalation (1 chunk to RED), damped de-escalation, emergency notification generation.
+  - Streaming server integration (`server/scorer.py`): rich alert payload serialization with `type: "alert"`.
+  - Web simulator update (`demo/web_simulator.py`): dynamic visual alert banner, auto-trigger TOTP challenge, Hindi/English TTS speech alerts.
+  - Comprehensive unit and integration test suite (`tests/test_fusion_alerts.py`).
+  - Documentation updates across `docs/01_ARCHITECTURE.md`, `docs/02_PHASE_PLAN.md`, `docs/03_PROGRESS_LOG.md`, `docs/07_API_CONTRACTS.md`, and `HANDOFF.md`.
+- **Out of scope**:
+  - Live carrier cellular network Twilio SIP gateway (Phase 8).
+  - External paid FCM gateway tokens (mock/local transport for demo).
+- **Planned Commits (6 commits)**:
+  1. `feat(ml): implement calibrated multimodal logistic fusion engine`
+  2. `feat(core): implement alert tier state machine with hysteresis debouncing`
+  3. `feat(server): wire fusion engine and alert dispatch into streaming scorer`
+  4. `feat(demo): update dual-phone simulator with dynamic alert banners and triggers`
+  5. `test(core): add comprehensive test suite for fusion, alerts, and state transitions`
+  6. `docs(phase-7): update architecture, api contracts, progress log, and handoff`
+- **Acceptance criteria**:
+  - Calibrated logistic fusion strictly outputs probability in $[0.0, 1.0]$.
+  - Extreme conditions ($s_a \ge 0.70$ or $s_t \ge 0.70$) guarantee immediate RED tier override.
+  - Alert tier state machine prevents flapping on borderline scores via hysteresis.
+  - Dual-phone simulator dynamically reflects AMBER and RED alert states with audio/visual feedback.
+  - 100% automated test pass rate across unit and integration tests.
+
 
 
 

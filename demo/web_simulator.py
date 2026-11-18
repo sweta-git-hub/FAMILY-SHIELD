@@ -22,6 +22,7 @@ REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 if REPO_ROOT not in sys.path:
     sys.path.insert(0, REPO_ROOT)
 
+from core.alert_tiers import AlertStateMachine, AlertTier
 from core.crypto import VerificationResult
 from core.elderly_ux import (
     ElderlySessionManager,
@@ -38,6 +39,7 @@ from core.pairing import (
 )
 from core.phone_util import format_phone_display, normalize_phone_number
 from core.storage import SecureVault
+from ml.fusion import MultimodalFusionEngine
 
 
 class SimulatorState:
@@ -58,6 +60,18 @@ class SimulatorState:
 
         self.elderly_manager = ElderlySessionManager()
         self.practice_session = PracticeCallSession(scenario_key="legitimate_child")
+
+        # Phase 7: Multimodal Fusion & Alert Engine
+        self.alert_state_machine = AlertStateMachine()
+        self.fusion_engine = MultimodalFusionEngine()
+        self.current_risk_result = {
+            "tier": "GREEN",
+            "risk": 0.08,
+            "dominant_modality": "none",
+            "prompt_action": "normal",
+            "spoken_advisory": "कॉल सामान्य है",
+            "reasons": [],
+        }
 
         # Auto-pair a default family link for instant demo convenience
         self.pair_devices(
@@ -142,7 +156,47 @@ class SimulatorState:
                 "peer_name": "Mom (Guardian)",
                 "peer_phone": format_phone_display(self.guardian_phone),
             },
+            "risk_state": self.current_risk_result,
         }
+
+    def simulate_risk(self, s_a: float, s_t: float, s_c: float, lang: str = "hi") -> dict:
+        """Simulates incoming call risk scoring and updates the alert state machine."""
+        fusion = self.fusion_engine.fuse(s_a=s_a, s_t=s_t, s_c=s_c)
+        reasons: List[str] = []
+        if s_t >= 0.50:
+            reasons.append("suspicious_scam_intent")
+        if s_a >= 0.50:
+            reasons.append("synthetic_voice_clone_artifacts")
+        if s_c >= 0.20:
+            reasons.append("unknown_incoming_number")
+
+        tier, transition = self.alert_state_machine.update(
+            fused_risk=fusion.fused_risk,
+            reasons=reasons,
+        )
+        advisory = self.alert_state_machine.get_spoken_advisory(lang=lang)
+        prompt = self.alert_state_machine.get_prompt_action()
+
+        notif_dict = None
+        if tier == AlertTier.RED:
+            notif = self.alert_state_machine.generate_emergency_notification(
+                target_phone=self.guardian_phone,
+                fused_risk=fusion.fused_risk,
+                dominant_modality=fusion.dominant_modality,
+                reasons=reasons,
+            )
+            notif_dict = notif.to_dict()
+
+        self.current_risk_result = {
+            "tier": tier.value,
+            "risk": fusion.fused_risk,
+            "dominant_modality": fusion.dominant_modality,
+            "prompt_action": prompt,
+            "spoken_advisory": advisory,
+            "reasons": reasons,
+            "emergency_notification": notif_dict,
+        }
+        return self.current_risk_result
 
     def verify_code(self, candidate_code: str) -> dict:
         if not self.guardian_rel or not self.lockout_session:
@@ -416,6 +470,35 @@ HTML_TEMPLATE = """<!DOCTYPE html>
   .role-member { background: rgba(16, 185, 129, 0.25); color: #34d399; }
   body.high-contrast .role-guardian { background: #facc15; color: #000; font-weight: 900; }
 
+  /* Phase 7: Risk Banners */
+  .risk-banner {
+    border-radius: 12px;
+    padding: 8px 12px;
+    margin-bottom: 8px;
+    text-align: left;
+    transition: all 0.3s ease;
+  }
+  .risk-green {
+    background: rgba(16, 185, 129, 0.15);
+    border: 1px solid #10b981;
+    color: #34d399;
+  }
+  .risk-amber {
+    background: rgba(245, 158, 11, 0.25);
+    border: 1px solid #f59e0b;
+    color: #fbbf24;
+  }
+  .risk-red {
+    background: rgba(239, 68, 68, 0.35);
+    border: 2px solid #ef4444;
+    color: #f87171;
+    animation: flashRed 1s infinite;
+  }
+  @keyframes flashRed {
+    0%, 100% { box-shadow: 0 0 8px rgba(239, 68, 68, 0.4); }
+    50% { box-shadow: 0 0 18px rgba(239, 68, 68, 0.9); }
+  }
+
   .phone-card {
     background: var(--card-bg);
     border: 1px solid var(--card-border);
@@ -674,6 +757,22 @@ HTML_TEMPLATE = """<!DOCTYPE html>
         <span id="guardianClock">--:--</span>
       </div>
 
+      <!-- Phase 7: Real-Time AI Threat Banner -->
+      <div id="guardianRiskBanner" class="risk-banner risk-green">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <span id="riskTierBadge" style="font-weight:800; font-size:11px; text-transform:uppercase;">GREEN • SAFE CALL</span>
+          <span id="riskScoreValue" style="font-size:11px; font-weight:700;">Risk: 8%</span>
+        </div>
+        <div id="riskReasonsText" style="font-size:10px; margin-top:2px; opacity:0.85;">Normal speech & acoustic dynamics</div>
+      </div>
+
+      <!-- Phase 7: AI Threat Simulator Presets Bar -->
+      <div style="display: flex; gap: 4px; margin-bottom: 8px;">
+        <button class="btn" style="flex:1; padding: 4px; font-size: 10px; background: rgba(16,185,129,0.2); border: 1px solid #10b981;" onclick="simulateThreatPreset('green')">🟢 Safe</button>
+        <button class="btn" style="flex:1; padding: 4px; font-size: 10px; background: rgba(245,158,11,0.2); border: 1px solid #f59e0b;" onclick="simulateThreatPreset('amber')">🟡 Amber</button>
+        <button class="btn" style="flex:1; padding: 4px; font-size: 10px; background: rgba(239,68,68,0.2); border: 1px solid #ef4444;" onclick="simulateThreatPreset('red')">🔴 Clone Scam</button>
+      </div>
+
       <!-- Spoken Audio Prompt Bar -->
       <div class="audio-prompt-box">
         <div id="audioPromptText">Please ask caller for their 6-digit family safety code.</div>
@@ -893,8 +992,60 @@ async function updateStatus() {
       banner.className = 'result-banner locked';
       banner.innerHTML = '&#9888; LOCKOUT TRIGGERED: 3 Failed Attempts!<br>High probability of AI Voice Clone scam. Hang up immediately!';
     }
+
+    if (data.risk_state) {
+      applyRiskState(data.risk_state, false);
+    }
   } catch (err) {
     console.error("Status polling error:", err);
+  }
+}
+
+async function simulateThreatPreset(preset) {
+  let s_a = 0.08, s_t = 0.05, s_c = 0.05;
+  if (preset === 'amber') {
+    s_a = 0.20;
+    s_t = 0.58;
+    s_c = 0.25;
+  } else if (preset === 'red') {
+    s_a = 0.92;
+    s_t = 0.95;
+    s_c = 0.25;
+  }
+  const res = await fetch('/api/simulate_risk', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ s_a, s_t, s_c, lang: currentLang })
+  });
+  const data = await res.json();
+  applyRiskState(data, true);
+}
+
+function applyRiskState(data, triggerSpeech) {
+  if (!data) return;
+  const banner = document.getElementById('guardianRiskBanner');
+  const badge = document.getElementById('riskTierBadge');
+  const scoreVal = document.getElementById('riskScoreValue');
+  const reasonsText = document.getElementById('riskReasonsText');
+  const promptBox = document.getElementById('audioPromptText');
+
+  if (banner && badge && scoreVal && reasonsText) {
+    banner.className = 'risk-banner risk-' + (data.tier || 'green').toLowerCase();
+    badge.textContent = data.tier + ' • ' + (data.tier === 'GREEN' ? 'SAFE CALL' : (data.tier === 'AMBER' ? 'SUSPICIOUS CALL' : 'CRITICAL CLONE SCAM'));
+    scoreVal.textContent = 'Risk: ' + Math.round((data.risk || 0) * 100) + '%';
+    reasonsText.textContent = (data.reasons && data.reasons.length > 0) ? ('Triggers: ' + data.reasons.join(', ')) : 'Normal speech & acoustic dynamics';
+  }
+
+  if (data.spoken_advisory) {
+    currentPromptString = data.spoken_advisory;
+    if (promptBox) promptBox.textContent = data.spoken_advisory;
+    if (triggerSpeech && data.tier !== 'GREEN' && ('speechSynthesis' in window)) {
+      window.speechSynthesis.cancel();
+      const utt = new SpeechSynthesisUtterance(data.spoken_advisory);
+      utt.lang = currentLang === 'hi' ? 'hi-IN' : 'en-US';
+      utt.rate = 0.9;
+      window.speechSynthesis.speak(utt);
+    }
   }
 }
 
@@ -1066,6 +1217,14 @@ class FVSRequestHandler(http.server.BaseHTTPRequestHandler):
         elif url.path == "/api/practice_verify":
             candidate = req_data.get("code", "")
             self._send_json(200, STATE.practice_verify(candidate))
+
+        elif url.path == "/api/simulate_risk":
+            s_a = float(req_data.get("s_a", 0.08))
+            s_t = float(req_data.get("s_t", 0.05))
+            s_c = float(req_data.get("s_c", 0.05))
+            lang = str(req_data.get("lang", "hi"))
+            res = STATE.simulate_risk(s_a=s_a, s_t=s_t, s_c=s_c, lang=lang)
+            self._send_json(200, res)
         else:
             self.send_error(404, "Not Found")
 

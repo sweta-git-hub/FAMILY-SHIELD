@@ -121,25 +121,50 @@ Emitted every 1.0 second as each 3.0-second chunk completes:
   "tier": "GREEN",
   "reasons": [],
   "prompt": "normal",
-  "mock": true
+  "dominant_modality": "none",
+  "mock": false
 }
 ```
 
 **Score Field Definitions**:
 - `t`: Elapsed call time in seconds.
-- `s_a`: Acoustic synthetic speech probability $[0.0 - 1.0]$ (AASIST model in Phase 6).
+- `s_a`: Acoustic synthetic speech probability $[0.0 - 1.0]$ (Acoustic Engine in Phase 6).
 - `s_t`: Semantic scam language probability $[0.0 - 1.0]$ (Whisper + Classifier in Phase 5).
 - `s_c`: Call context risk score $[0.0 - 1.0]$.
-- `risk`: Fused composite scam risk probability $[0.0 - 1.0]$.
-- `tier`: Classification tier:
-  - `GREEN` ($\text{risk} < 0.40$): Low risk, standard display.
-  - `AMBER` ($0.40 \le \text{risk} < 0.70$): Suspicious call; displays warning prompt.
-  - `RED` ($\text{risk} \ge 0.70$): Critical scam detected; prompts guardian to demand family rotating code.
-- `reasons`: Machine-readable triggers (e.g. `["urgency", "secrecy", "new_number"]`).
+- `risk`: Calibrated logistic multimodal risk probability $[0.0 - 1.0]$ (Phase 7).
+- `tier`: Classification tier (`GREEN`, `AMBER`, `RED`) governed by `AlertStateMachine` hysteresis.
+- `reasons`: Machine-readable triggers (e.g. `["authority", "hyper_periodic_pitch_lock", "unknown_number"]`).
 - `prompt`: Recommended UX action (`"normal"` or `"ask_for_code"`).
-- `mock`: Boolean indicating mock scoring (`true` until Phase 5/6 real models are wired).
+- `dominant_modality`: Modality driving the threat (`"acoustic"`, `"semantic"`, `"context"`, or `"none"`).
+- `mock`: Boolean indicating whether mock components were used.
 
-#### C. Error Frame (Text / JSON)
+#### C. Emergency Broadcast Request & Ack Frames (Phase 7)
+Client initiates emergency alert dispatch to family members:
+```json
+{
+  "type": "broadcast",
+  "phone": "+919876543210"
+}
+```
+Server acknowledges with HMAC-SHA256 signed emergency payload:
+```json
+{
+  "type": "broadcast_ack",
+  "notification": {
+    "notification_id": "a1b2c3d4e5f67890",
+    "timestamp": 1700000000.0,
+    "tier": "RED",
+    "risk_score": 0.88,
+    "dominant_modality": "multimodal_alert",
+    "reasons": ["user_emergency_broadcast"],
+    "masked_target_phone": "+9198***210",
+    "action_required": "Guardian is currently on a suspicious high-risk call. Verify immediately.",
+    "signature": "7f8b9a1c2d3e..."
+  }
+}
+```
+
+#### D. Error Frame (Text / JSON)
 ```json
 {
   "type": "error",
