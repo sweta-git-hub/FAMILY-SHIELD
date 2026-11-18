@@ -392,6 +392,19 @@
 - **Tests**: `python -m unittest tests/test_privacy_security_audit.py` -> 4/4 passing in 0.06s.
 - **Next**: Implement failure recovery, concurrency, and packet corruption tests in Commit 4 (`tests/test_hardening_recovery.py`).
 
+### p9-hardening | test(hardening): add concurrency, malformed packet injection, and disconnect recovery tests | phase/09-eval-hardening
+- **Built**:
+  - `tests/test_hardening_recovery.py`: 5 hardening and failure-recovery integration tests verifying:
+    - Session capacity throttling and quota reclamation.
+    - Chunker tolerance to odd-byte truncated PCM payloads.
+    - Protection against extreme clipping, DC offsets, and numerical overflow.
+    - Backpressure memory ceiling enforcement via 12.0s buffer capacity eviction.
+    - Immediate session teardown upon abrupt client WebSocket disconnect.
+- **Why**: Ensure stability, memory bounds, and denial-of-service resilience under erratic client behavior.
+- **Decision**: Validate both isolated unit behavior and live FastAPI WebSocket endpoint teardown.
+- **Tests**: `python -m unittest tests/test_hardening_recovery.py` -> 5/5 passing in 0.13s.
+- **Next**: Implement automated benchmark runner and empirical metrics aggregator in Commit 5 (`demo/evaluate_system.py`).
+
 
 
 
