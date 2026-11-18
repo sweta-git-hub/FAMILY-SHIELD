@@ -294,6 +294,66 @@
 - **Tests**: Verified test suite passes and docs consistency.
 - **Left off / next**: Phase 7 complete locally on `phase/07-fusion-alerts`. Awaiting user instruction before pushing to GitHub.
 
+---
+
+### p8-scenarios | feat(demo): define realistic scripted scam and benign scenario catalog | phase/08-demo-path
+- **Built**:
+  - `demo/scenarios.py`: Created structured, multi-chunk scenario catalog covering 5 realistic Indian fraud tactics and edge cases:
+    - S1: Fake Accident – Urgent UPI Demand (Scam, Hindi/Hinglish, AMBER at 4s, RED at 6s).
+    - S2: Digital Arrest – CBI Impersonation (Scam, English, instant AMBER at 0s, RED at 2s).
+    - S3: Benign Family – Weekend Chat (Benign, stays GREEN throughout 4 windows).
+    - S4: Relay Attack Defense – Stale Session Replay (Edge, cryptographic gateway rejection).
+    - S5: Covert Duress Call – Silent Emergency Notification (Safety, visual GREEN, background emergency SMS dispatch).
+- **Why**: Establish ground truth evaluation data exercising the full pipeline deterministically without requiring cloud dependencies.
+- **Decision**: Scripted multi-chunk transcripts and acoustic cues enable reproducible testing and live judging.
+- **Tests**: Direct schema and metadata validation via `demo/scenarios.py`.
+- **Next**: Implement telephony audio replay streaming runner in Commit 2.
+
+### p8-harness | feat(demo): implement telephony audio replay test harness with metrics | phase/08-demo-path
+- **Built**:
+  - `demo/telephony_replay.py`: CLI streaming runner that generates 8 kHz PCM, degrades it through `TelephonyCodecSimulator` (G.711 $\mu$-law + 300-3400 Hz bandpass), evaluates each window through `StreamScorer`, and measures Time-to-AMBER, Time-to-RED, SLA compliance ($\le 8\text{s}$), and latency percentiles (p50, p95).
+- **Why**: Provide automated verification of detection speed and channel robustness under degraded PSTN carrier conditions.
+- **Decision**: Support both rich formatted terminal output and machine-readable `--json` output.
+- **Tests**: Successfully executed all 5 scenarios with 100% SLA compliance (`p50 < 3.0ms`).
+- **Next**: Integrate interactive walkthrough into the dual-phone simulator in Commit 3.
+
+### p8-sim | feat(demo): integrate interactive scenario walkthrough into web simulator | phase/08-demo-path
+- **Built**:
+  - `demo/web_simulator.py`: Integrated Phase 8 Interactive Evaluation Panel:
+    - Endpoints: `GET /api/scenarios`, `POST /api/run_scenario`, `POST /api/scenario_step`, `POST /api/reset_scenario`.
+    - UI: Scenario dropdown selector, "Run Entire Scenario", "Step Next Chunk", and "Reset" controls.
+    - Live Telemetry: Multi-window event log showing chunk transcripts, acoustic/semantic scores, fused risk percentages, tier badges, and audible bilingual TTS guidance.
+- **Why**: Give hackathon judges and users a one-click, visually compelling demonstration of real-time AI threat escalation and cryptographic defense.
+- **Decision**: Support both batch execution and step-by-step playback to match live presentation pacing.
+- **Tests**: Verified simulator backend methods and live endpoints.
+- **Next**: Add comprehensive automated test suite in Commit 4.
+
+### p8-tests | test(demo): add comprehensive automated test suite for all demo scenarios | phase/08-demo-path
+- **Built**:
+  - `tests/test_demo_scenarios.py`: 19 comprehensive unit and integration tests covering:
+    - Scenario catalog schema and metadata consistency.
+    - Replay harness SLA speed checks on scam cases (S1 Time-to-AMBER $\le 4$s, S2 $\le 0$s).
+    - Benign call stability (zero false alarms across all audio windows).
+    - Replay attack defense (Scenario 4) and covert duress alert dispatch (Scenario 5).
+    - Web simulator backend methods, stepping progression, and reset.
+    - CLI options (`--list`, `--scenario`, `--all`, `--json`).
+- **Why**: Guarantee zero regressions and 100% test pass rate across the demo path.
+- **Decision**: Unit test both individual components and complete streaming flows.
+- **Tests**: 110/110 total repository tests passing (`Ran 110 tests in 0.553s, OK`).
+- **Next**: Update architecture, runbook, progress log, and handoff in Commit 5.
+
+### p8-docs | docs(phase-8): update runbook, architecture, progress log, and handoff | phase/08-demo-path
+- **Built**:
+  - `docs/01_ARCHITECTURE.md`: Added Section 7 detailing demo path and evaluation scenarios.
+  - `docs/02_PHASE_PLAN.md`: Marked Phase 8 as DONE.
+  - `docs/03_PROGRESS_LOG.md`: Appended entries for Commits 1-5.
+  - `docs/06_RUNBOOK.md`: Added CLI commands and UI instructions for running scenarios.
+  - `HANDOFF.md`: Updated to Phase 8 DONE, ready for Phase 9.
+- **Why**: Complete documentation synchronization across all project artifacts.
+- **Decision**: Keep commands copy-paste ready for users and judges.
+- **Tests**: All 110 tests passing, documentation verified.
+- **Left off / next**: Phase 8 complete locally on `phase/08-demo-path`. Awaiting user instruction before pushing to GitHub.
+
 
 
 

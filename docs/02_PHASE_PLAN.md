@@ -12,7 +12,7 @@
 | 5 | Scam Engine | `phase/05-scam-engine` | STT wrapper, lexicon, noisy-OR classifier | DONE | ml/scam_lexicon.py, ml/scam_classifier.py, ml/stt_engine.py, server/scorer.py, server/stream.py, tests/test_scam_engine.py | Ready for Phase 6 | - |
 | 6 | Anti-Spoof | `phase/06-antispoof` | Telephony simulator, ONNX model inference | DONE | ml/telephony_codec.py, ml/antispoof_engine.py, server/scorer.py, tests/test_antispoof.py | Ready for Phase 7 | - |
 | 7 | Fusion & Alerts | `phase/07-fusion-alerts` | Logistic fusion, alert tiers, client triggers | DONE | ml/fusion.py, core/alert_tiers.py, server/scorer.py, server/stream.py, demo/web_simulator.py, tests/test_fusion_alerts.py | Ready for Phase 8 | - |
-| 8 | Realistic Demo | `phase/08-demo-path` | Telephony/replay demo path, scripted cases | TODO | - | - | - |
+| 8 | Realistic Demo | `phase/08-demo-path` | Telephony/replay demo path, scripted cases | DONE | demo/scenarios.py, demo/telephony_replay.py, demo/web_simulator.py, tests/test_demo_scenarios.py | Ready for Phase 9 | - |
 | 9 | Eval & Hardening | `phase/09-eval-hardening` | Red-team tests, privacy audit, metrics report | TODO | - | - | - |
 | 10 | Pitch & Release | `phase/10-release` | Slide deck, fallback video, README runbook | TODO | - | - | - |
 
@@ -235,6 +235,37 @@
   - Alert tier state machine prevents flapping on borderline scores via hysteresis.
   - Dual-phone simulator dynamically reflects AMBER and RED alert states with audio/visual feedback.
   - 100% automated test pass rate across unit and integration tests.
+
+### Phase 8: Realistic End-to-End Demo Path
+- **Branch**: `phase/08-demo-path`
+- **Time-box**: 2.5 h
+- **Status**: DONE
+- **Goal and Objectives**:
+  - Construct 5 realistic, timed end-to-end evaluation scenarios mirroring real fraud tactics in India (Fake Accident, Digital Arrest, Benign Family, Replay Attack, Duress Alert).
+  - Implement a telephony replay streaming test harness simulating degraded PSTN carrier audio through the pipeline.
+  - Integrate an interactive walkthrough scenario selector into the dual-phone web simulator for live judging.
+  - Measure and report end-to-end performance targets (Time-to-Amber < 8s, verification time < 15s).
+- **In scope**:
+  - Scenario catalog definition (`demo/scenarios.py`): 5 structured scenarios with multi-chunk transcripts, acoustic cues, context flags, and expected tier progressions.
+  - Telephony replay runner (`demo/telephony_replay.py`): CLI streaming degraded G.711 carrier audio through `StreamScorer` with real-time latency and trigger metrics.
+  - Web simulator walkthrough enhancements (`demo/web_simulator.py`): one-click scenario runner, live event log, automated code verification and emergency buttons.
+  - Automated test suite (`tests/test_demo_scenarios.py`): deterministic assertion of scenario progression, timing limits, and directional key defense.
+  - Documentation updates across `docs/01_ARCHITECTURE.md`, `docs/02_PHASE_PLAN.md`, `docs/03_PROGRESS_LOG.md`, `docs/06_RUNBOOK.md`, and `HANDOFF.md`.
+- **Out of scope**:
+  - Paid carrier Twilio trunking gateway (mock local telephony channel used).
+- **Commits Completed (5 commits)**:
+  1. `feat(demo): define realistic scripted scam and benign scenario catalog`
+  2. `feat(demo): implement telephony audio replay test harness with metrics`
+  3. `feat(demo): integrate interactive scenario walkthrough into web simulator`
+  4. `test(demo): add comprehensive automated test suite for all demo scenarios`
+  5. `docs(phase-8): update runbook, architecture, progress log, and handoff`
+- **Acceptance criteria achieved**:
+  - All 5 scripted scenarios execute cleanly and achieve expected tier progressions.
+  - Time-to-Amber achieved within $\le 4.0$ seconds on scam scenarios (well within $\le 8$s SLA).
+  - Directional key attack (Scenario 4) fails verification and rejects call instantly.
+  - Duress escape (Scenario 5) triggers silent emergency family notification while maintaining screen safety.
+  - 100% automated test pass rate (110/110 passing across repository).
+
 
 
 

@@ -1,4 +1,4 @@
-# HANDOFF (updated: 2026-11-18, Phase 7 DONE, Phase 8 TODO)
+# HANDOFF (updated: 2026-11-18, Phase 8 DONE, Phase 9 TODO)
 
 ## What this project is (3 lines)
 Family Voice Shield is an anti-voice-clone scam protection system for families.
@@ -6,8 +6,8 @@ It proves caller identity using an offline, zero-knowledge rotating family code 
 An accompanying AI warning layer (scam language + synthetic speech detection) automatically triggers the challenge prompt when risk is detected.
 
 ## Current state
-- Phase status: 0 DONE, 1 DONE, 2 DONE, 3 DONE, 4 DONE, 5 DONE, 6 DONE, 7 DONE, 8 TODO, 9 TODO, 10 TODO
-- Built in Phases 0, 1, 2, 3, 4, 5, 6 & 7:
+- Phase status: 0 DONE, 1 DONE, 2 DONE, 3 DONE, 4 DONE, 5 DONE, 6 DONE, 7 DONE, 8 DONE, 9 TODO, 10 TODO
+- Built in Phases 0 through 8:
   - Repository monorepo layout (`core/`, `mobile/`, `server/`, `ml/`, `demo/`, `infra/`, `tests/`, `docs/`)
   - Complete documentation system (`docs/00` through `docs/08`)
   - `RULE.md` agent operating rules and permission gates
@@ -31,11 +31,13 @@ An accompanying AI warning layer (scam language + synthetic speech detection) au
   - Calibrated multimodal logistic fusion engine (`ml/fusion.py`) combining acoustic, semantic, and context signals with fail-safe overrides
   - Alert tier state machine (`core/alert_tiers.py`) with asymmetric hysteresis debouncing (fast escalation, damped de-escalation) and HMAC-SHA256 emergency broadcast signing
   - Interactive dual-device web simulator (`demo/web_simulator.py`) featuring real-time AI Threat Simulator presets, animated alert banners, and bilingual audio TTS guidance
+  - Scripted evaluation scenario catalog (`demo/scenarios.py`) with 5 realistic Indian fraud tactics and edge cases (S1: Fake Accident, S2: Digital Arrest, S3: Benign Family, S4: Relay Attack Defense, S5: Covert Duress Call)
+  - Standalone telephony streaming replay test harness (`demo/telephony_replay.py`) simulating degraded G.711 carrier audio through `StreamScorer` with real-time SLA verification ($\le 8\text{s}$) and p50/p95 latency profiling
+  - Web simulator walkthrough enhancements (`demo/web_simulator.py`) adding interactive scenario selector bar, full scenario runner, step-by-step playback, and real-time event log
   - Docker containerization (`infra/Dockerfile` and `infra/docker-compose.yml`)
   - Audio replay client (`server/client_replay.py`) and Flutter/Dart streaming client (`mobile/audio_stream_client.dart`)
-  - Comprehensive unit and integration test suite (91 total tests across 11 test suites in `tests/`).
+  - Comprehensive unit and integration test suite (110 total tests across 12 test suites in `tests/`, 100% passing).
 - Not built / left off:
-  - Phase 8: Realistic End-to-End Demo Path (telephony/replay demo path, scripted realistic scam cases)
   - Phase 9: Eval & Hardening (red-team tests, privacy audit, metrics report)
   - Phase 10: Pitch & Release (pitch deck, release artifacts)
 - Known bugs and traps:
@@ -47,7 +49,18 @@ An accompanying AI warning layer (scam language + synthetic speech detection) au
 ## How to run and test (exact commands)
 - Run unit test suite:
   `python -m unittest discover tests`
+- Run telephony replay harness across all scenarios:
+  `python -m demo.telephony_replay --all`
+- Run telephony replay on single scenario with JSON report:
+  `python -m demo.telephony_replay --scenario S1 --json`
 - Run FastAPI streaming server:
+  `uvicorn server.main:app --host 0.0.0.0 --port 8000 --reload`
+- Run replay test client:
+  `python server/client_replay.py --host localhost --port 8000 --duration 10.0`
+- Run via Docker:
+  `docker compose -f infra/docker-compose.yml up --build`
+- Run interactive dual-device web simulator with walkthrough:
+  `python demo/web_simulator.py 8080` (open http://localhost:8080 in browser)
   `uvicorn server.main:app --host 0.0.0.0 --port 8000 --reload`
 - Run replay test client:
   `python server/client_replay.py --host localhost --port 8000 --duration 10.0`

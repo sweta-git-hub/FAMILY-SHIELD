@@ -186,3 +186,37 @@ To prevent UI flapping on borderline calls (e.g. risk fluctuating around 0.40):
    - `RED`: `"ask_for_code"` + Emergency Family SOS trigger
 3. **Bilingual Spoken Guidance**: Localized Hindi and English voice prompts spoken via device TTS for low-vision seniors.
 4. **HMAC-Signed Emergency Broadcast**: Generates cryptographically sealed `EmergencyNotification` payloads with masked phone numbers for family distribution.
+
+---
+
+## 7. Demo Path & Evaluation Scenarios (Phase 8)
+
+### 7.1 Scripted Evaluation Scenario Catalog (`demo/scenarios.py`)
+To enable deterministic, reproducible hackathon evaluations without unpredictable network dependencies, 5 end-to-end evaluation scenarios mirror prevalent fraud patterns and benign usage across India:
+
+| Scenario ID | Name | Category | Expected Tier | Target Time-to-AMBER | Target Time-to-RED | Key Defense Tested |
+|---|---|---|---|---|---|---|
+| **S1** | Fake Accident – Urgent UPI Demand | Scam | `RED` | $\le 4.0\text{s}$ | $\le 6.0\text{s}$ | Escalation from vague relative claim $\to$ financial demand $\to$ secrecy/isolation |
+| **S2** | Digital Arrest – CBI Impersonation | Scam | `RED` | $0.0\text{s}$ | $\le 2.0\text{s}$ | Instant critical authority override on "Digital Arrest" + Aadhaar coercion |
+| **S3** | Benign Family – Weekend Chat | Benign | `GREEN` | None (Stable) | None | False-positive rejection on casual multi-chunk Hindi conversation |
+| **S4** | Relay Attack Defense – Stale Nonce | Edge/Security | `REJECTED` | None (Blocked) | None | Replayed audio token intercepted from prior session fails cryptographic nonce verification |
+| **S5** | Covert Duress Call – Silent Alarm | Edge/Safety | `GREEN` (Cover) | None | None | Victim utters secret duress keyword ("Raju"); screen stays normal, silent HMAC emergency alert dispatched |
+
+### 7.2 Telephony Audio Replay Harness (`demo/telephony_replay.py`)
+1. **Channel Degradation Pipeline**:
+   - Audio is generated as 16-bit 8 kHz mono linear PCM.
+   - Processed through `TelephonyCodecSimulator` (ITU-T G.711 $\mu$-law compression, 300–3400 Hz voice bandpass filter, and quantization noise).
+2. **Stream Scoring & SLA Tracking**:
+   - Each 2.0s window is evaluated through `StreamScorer` (`MockSTTEngine`, `MockAntiSpoofEngine`, `MultimodalFusionEngine`, and `AlertStateMachine`).
+   - Tracks Time-to-AMBER and Time-to-RED against strict project latency SLAs ($\le 8\text{s}$).
+   - Measures p50, p95, and max processing latencies ($< 5\text{ms}$ in-memory).
+   - Generates formatted terminal reports or structured JSON metrics.
+
+### 7.3 Dual-Phone Web Simulator Walkthrough (`demo/web_simulator.py`)
+1. **Interactive Evaluation Bar**:
+   - Provides live scenario dropdown selector (`S1` through `S5`).
+   - "Run Entire Scenario" executes full streaming pass with animated progress.
+   - "Step Next Chunk" advances window-by-window for step-by-step judge presentations.
+2. **Live Telemetry & Event Log**:
+   - Visualizes chunk transcripts, individual modality scores ($s_a, s_t, s_c$), calibrated fused risk, and processing latencies.
+   - Dynamic alert badges and audible bilingual speech advisories reflect real-time threat level transitions.
