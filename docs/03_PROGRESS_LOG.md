@@ -380,6 +380,18 @@
 - **Tests**: `python -m unittest tests/test_redteam.py` -> 15/15 passing in 0.17s.
 - **Next**: Implement privacy and security audit test suite in Commit 3 (`tests/test_privacy_security_audit.py`).
 
+### p9-privacy-audit | test(security): implement privacy audit verifying zero disk writes, memory wipe, and log sanitization | phase/09-eval-hardening
+- **Built**:
+  - `tests/test_privacy_security_audit.py`: 4 automated privacy and security audit tests verifying:
+    - Zero audio or transcript disk persistence across high-volume streaming sessions (Rule 7).
+    - Immediate in-memory buffer release upon session closure.
+    - Strict logger sanitization purging sensitive keys (`audio`, `transcript`, `secret`, `totp`, `phone`).
+    - Cryptographic tamper-evidence of `SecureVault` failing closed upon signature corruption.
+- **Why**: Provide automated regression testing for core privacy, memory safety, and secret containment rules.
+- **Decision**: Programmatically monitor system temp directories and log outputs during test execution.
+- **Tests**: `python -m unittest tests/test_privacy_security_audit.py` -> 4/4 passing in 0.06s.
+- **Next**: Implement failure recovery, concurrency, and packet corruption tests in Commit 4 (`tests/test_hardening_recovery.py`).
+
 
 
 
