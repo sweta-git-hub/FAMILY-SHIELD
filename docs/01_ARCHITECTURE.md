@@ -154,3 +154,35 @@ Carrier voice calls in India and globally operate over legacy 2G/3G narrowband c
 3. **Multimodal Scoring (`server/scorer.py`)**:
    - `StreamScorer` evaluates incoming 16 kHz PCM chunks with both STT (Phase 5) and Acoustic Anti-Spoof (Phase 6).
    - If either $s_a \ge 0.70$ (synthetic voice clone detected) or $s_t \ge 0.70$ (critical scam language detected), fused risk elevates immediately to **RED** tier and commands `ask_for_code`.
+
+---
+
+## 6. Multimodal Logistic Fusion & Alert Tier Engine (Phase 7)
+
+### 6.1 Calibrated Logistic Fusion Model (`ml/fusion.py`)
+To prevent arbitrary heuristic weightings, risk signals from acoustic, semantic, and context modalities are combined via a calibrated Generalized Linear Model with logit transforms:
+$$z = w_0 + w_a \cdot \text{logit}(s_a) + w_t \cdot \text{logit}(s_t) + w_c \cdot s_c$$
+$$\text{risk} = \sigma(z) = \frac{1}{1 + e^{-z}}$$
+where:
+- $w_0 = -1.20$: Prior calibration bias favoring normal benign personal calls.
+- $w_a = 1.25$: Acoustic synthetic weight (voice clone detection).
+- $w_t = 1.35$: Semantic scam language weight (Noisy-OR intent extraction).
+- $w_c = 1.50$: Contextual weight (unknown number + claimed relative).
+
+#### Fail-Safe Critical Threat Overrides:
+To preserve life-safety guarantees:
+- If $s_a \ge 0.70$ (critical synthetic voice clone confirmed), the threat is never suppressed by benign conversational words.
+- If $s_t \ge 0.70$ (critical digital arrest/kidnapping extortion), natural acoustic qualities cannot suppress the scam intent.
+- $\text{risk} = \max(\text{risk}, s_a, s_t)$ whenever either crosses the $0.70$ threshold.
+
+### 6.2 Alert Tier State Machine & Hysteresis Debouncing (`core/alert_tiers.py`)
+To prevent UI flapping on borderline calls (e.g. risk fluctuating around 0.40):
+1. **Asymmetric State Transitions**:
+   - **Fast Escalation**: Instantaneous jump to AMBER ($\ge 0.40$) or RED ($\ge 0.70$) on the very first chunk exceeding threshold.
+   - **Damped De-escalation**: Requires risk to drop below hysteresis threshold ($< 0.60$ for RED $\to$ AMBER, $< 0.32$ for AMBER $\to$ GREEN) for at least 2 consecutive chunks.
+2. **Action Commands**:
+   - `GREEN`: `"normal"`
+   - `AMBER`: `"ask_for_code"`
+   - `RED`: `"ask_for_code"` + Emergency Family SOS trigger
+3. **Bilingual Spoken Guidance**: Localized Hindi and English voice prompts spoken via device TTS for low-vision seniors.
+4. **HMAC-Signed Emergency Broadcast**: Generates cryptographically sealed `EmergencyNotification` payloads with masked phone numbers for family distribution.

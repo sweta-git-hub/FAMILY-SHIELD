@@ -241,6 +241,59 @@
 - **Tests**: Verified test suite passes and docs consistency.
 - **Left off / next**: Phase 6 complete locally on `phase/06-antispoof`. Awaiting user instruction before pushing to GitHub.
 
+### p7-fusion | feat(ml): implement calibrated multimodal logistic fusion engine | phase/07-fusion-alerts
+- **Built**:
+  - `ml/fusion.py`: Generalized logistic regression combining $s_a$, $s_t$, and $s_c$ with logit transformation, numerical stability clamping, fail-safe critical threat overrides ($\ge 0.70$), and dominant modality attribution.
+- **Why**: Prevent heuristic threshold guesswork by using a calibrated probabilistic fusion model where high-confidence indicators cannot be suppressed.
+- **Decision**: Calibrated prior offset $w_0 = -1.20$ favors benign calls while overrides ensure instantaneous RED alert on critical indicators.
+- **Tests**: Sigmoid bounding, monotonicity, and override verification in `tests/test_fusion_alerts.py`.
+- **Next**: Implement alert tier state machine with hysteresis debouncing in Commit 2.
+
+### p7-alerts | feat(core): implement alert tier state machine with hysteresis debouncing | phase/07-fusion-alerts
+- **Built**:
+  - `core/alert_tiers.py`: `AlertStateMachine` governing GREEN, AMBER, RED alert transitions with fast escalation (1 chunk) and damped de-escalation (patience counter). Added bilingual spoken advisories in Hindi and English, and HMAC-SHA256 signed emergency notifications.
+- **Why**: Prevent rapid UI flickering / alert audio spamming on borderline call risk scores.
+- **Decision**: Asymmetric hysteresis: instantaneous escalation for safety, multi-chunk patience for de-escalation.
+- **Tests**: Fast escalation and hysteresis debouncing test cases.
+- **Next**: Wire fusion engine and alert dispatch into streaming scorer in Commit 3.
+
+### p7-server | feat(server): wire fusion engine and alert dispatch into streaming scorer | phase/07-fusion-alerts
+- **Built**:
+  - `server/scorer.py`: Integrated `MultimodalFusionEngine` and `AlertStateMachine` into `StreamScorer`, outputting calibrated risk and dominant modality.
+  - `server/stream.py`: Added `broadcast` control frame handling to dispatch signed emergency family notifications over WebSockets.
+- **Why**: Deliver production multimodal closed-loop protection directly to streaming mobile and web clients.
+- **Decision**: Preserved contract compatibility for standard score frames while surfacing rich alert metadata.
+- **Tests**: StreamScorer multimodal flow integration tests.
+- **Next**: Update dual-phone simulator with dynamic alert banners in Commit 4.
+
+### p7-demo | feat(demo): update dual-phone simulator with dynamic alert banners and triggers | phase/07-fusion-alerts
+- **Built**:
+  - `demo/web_simulator.py`: Added interactive AI Threat Simulator presets bar (🟢 Safe, 🟡 Amber, 🔴 Clone Scam), dynamic high-contrast visual alert banners with CSS animations, auto-speech TTS prompt playback, and `/api/simulate_risk` endpoint.
+- **Why**: Provide an intuitive, impressive, and interactive demonstration of the multimodal warning layer for judges and users.
+- **Decision**: Real-time visual feedback tied directly to elderly accessibility voice guidance.
+- **Tests**: Manual and endpoint testing of risk simulation.
+- **Next**: Add comprehensive unit and integration test suite in Commit 5.
+
+### p7-tests | test(core): add comprehensive test suite for fusion, alerts, and state transitions | phase/07-fusion-alerts
+- **Built**:
+  - `tests/test_fusion_alerts.py`: 8 test methods covering logistic fusion math, sigmoid bounding, monotonic escalation, critical overrides, alert state transitions, hysteresis patience, bilingual advisories, HMAC signing, and StreamScorer integration.
+- **Why**: Ensure 100% test pass rate across all Phase 7 logic.
+- **Decision**: Test both mathematical properties and operational edge cases.
+- **Tests**: 91/91 total repository tests passing (`Ran 91 tests in 0.224s, OK`).
+- **Next**: Synchronize documentation across architecture, API contracts, progress log, and handoff in Commit 6.
+
+### p7-docs | docs(phase-7): update architecture, api contracts, progress log, and handoff | phase/07-fusion-alerts
+- **Built**:
+  - `docs/01_ARCHITECTURE.md`: Documented Section 6 (Multimodal Logistic Fusion & Alert Tier Engine).
+  - `docs/07_API_CONTRACTS.md`: Documented `dominant_modality` in score frame and emergency broadcast request/ack frames.
+  - `docs/02_PHASE_PLAN.md`: Marked Phase 7 as DONE.
+  - `docs/03_PROGRESS_LOG.md`: Appended entries for Commits 1-6.
+  - `HANDOFF.md`: Updated to Phase 7 DONE, ready for Phase 8.
+- **Why**: Maintain strict documentation synchronization for the complete system.
+- **Decision**: Clear runbook and architecture references for next phase.
+- **Tests**: Verified test suite passes and docs consistency.
+- **Left off / next**: Phase 7 complete locally on `phase/07-fusion-alerts`. Awaiting user instruction before pushing to GitHub.
+
 
 
 
