@@ -16,7 +16,7 @@ python -m unittest discover tests
 
 Expected output:
 ```
-Ran 55 tests in ~0.35s
+Ran 135 tests in ~6.5s
 OK
 ```
 
@@ -29,6 +29,13 @@ OK
 6. `tests/test_chunker.py` (9 tests): 16 kHz 16-bit PCM chunk sizing (3.0s = 96,000 bytes), sliding stride (1.0s = 32,000 bytes), 100ms packet feeding, SimpleEnergyVAD silence vs speech classification, ring buffer overflow eviction, and buffer reset.
 7. `tests/test_scorer.py` (3 tests): `MockScorer` contract compliance, silence GREEN tier classification, call context risk elevation (`unknown_number` + `claims_relative`).
 8. `tests/test_backend_stream.py` (6 tests): `GET /v1/health`, `POST /v1/session`, WebSocket unauthorized rejection (close code 4001), WebSocket handshake (`start` $\to$ `ready`), live PCM streaming, score pushes, clean teardown (`end`), client reconnect, and replay statistics.
+9. `tests/test_scam_engine.py` (13 tests): Multilingual scam lexicon extraction, Devanagari/Hinglish patterns, Bayesian Noisy-OR mathematical monotonicity, and in-memory STT engine.
+10. `tests/test_antispoof.py` (12 tests): G.711 $\mu$-law/A-law codec fidelity, 8 kHz decimation, bandpass filtering, packet jitter, and acoustic artifact scoring ($s_a$).
+11. `tests/test_fusion_alerts.py` (8 tests): Calibrated multimodal logistic fusion, fail-safe critical threat overrides ($\ge 0.70$), alert tier state machine with hysteresis debouncing, and HMAC-signed emergency broadcast alerts.
+12. `tests/test_demo_scenarios.py` (20 tests): 5 structured evaluation scenarios (S1-S5), telephony replay harness, web simulator stepping, and benchmark metrics verification.
+13. `tests/test_redteam.py` (15 tests): Adversarial scam lexicon evasion, polite phrasing, dilution attacks, deepfake detection under carrier telephony degradation, and cryptographic replay/directional key defenses.
+14. `tests/test_privacy_security_audit.py` (4 tests): Zero-disk persistence audit across high-volume streams (Rule 7), in-memory buffer purge, sensitive log sanitization, and vault tamper fail-closed defense.
+15. `tests/test_hardening_recovery.py` (5 tests): Concurrency capacity caps, odd-byte PCM handling, extreme signal clipping/DC offset safety, 12s buffer capacity eviction, and abrupt WebSocket disconnect cleanup.
 
 ---
 
@@ -175,3 +182,36 @@ Open `http://localhost:8080/`:
 ## 6. Resetting State
 - **Server sessions**: Automatically expire in memory after TTL; restart server or send `{"type": "end"}` to terminate immediately.
 - **Client Vault**: Vault records and strike counters can be reset via the simulator UI ("Reset Strikes") or by re-instantiating fresh in-memory `SecureVault` instances.
+
+---
+
+## 7. Running System Evaluation & Empirical Benchmarks (Phase 9)
+
+Run the automated 30-case empirical evaluation harness to measure precision, recall, F1, false positive rate, and processing latency:
+```bash
+python -m demo.evaluate_system
+```
+
+Or export machine-readable JSON metrics for automated evaluation reporting:
+```bash
+python -m demo.evaluate_system --json
+```
+
+---
+
+## 8. Running Red-Team & Privacy Audit Suites (Phase 9)
+
+Execute the targeted adversarial red-team penetration tests:
+```bash
+python -m unittest tests/test_redteam.py
+```
+
+Execute the automated zero-disk privacy and logger sanitization audit:
+```bash
+python -m unittest tests/test_privacy_security_audit.py
+```
+
+Execute the concurrency, packet corruption, and failure recovery tests:
+```bash
+python -m unittest tests/test_hardening_recovery.py
+```

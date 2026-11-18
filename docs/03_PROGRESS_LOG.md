@@ -429,6 +429,18 @@
 - **Tests**: Cross-referenced with test outputs and benchmark runner results.
 - **Next**: Synchronize runbook, architecture, progress log, and handoff in Commit 7.
 
+### p9-docs | docs(phase-9): update runbook, architecture, progress log, and handoff | phase/09-eval-hardening
+- **Built**:
+  - `docs/01_ARCHITECTURE.md`: Added Section 8 detailing Evaluation & Hardening Architecture, filesystem watchdog, and red-team penetration vectors.
+  - `docs/02_PHASE_PLAN.md`: Marked Phase 9 as `DONE` across status board and detail inventory.
+  - `docs/06_RUNBOOK.md`: Added CLI instructions for running empirical benchmarks, red-team tests, and privacy audits, and updated test inventory to 135 tests.
+  - `HANDOFF.md`: Updated current state to Phase 9 DONE, ready for Phase 10.
+  - `docs/03_PROGRESS_LOG.md`: Appended entries for Commits 1-7.
+- **Why**: Complete documentation synchronization for all Phase 9 deliverables.
+- **Decision**: Keep runbook commands copy-paste ready for users and evaluation judges.
+- **Tests**: All 135 tests passing; documentation consistency verified.
+- **Left off / next**: Phase 9 complete locally on `phase/09-eval-hardening`. Awaiting Gate G2 permission to push to GitHub.
+
 
 
 

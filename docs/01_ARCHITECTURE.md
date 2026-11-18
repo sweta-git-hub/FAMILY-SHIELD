@@ -220,3 +220,54 @@ To enable deterministic, reproducible hackathon evaluations without unpredictabl
 2. **Live Telemetry & Event Log**:
    - Visualizes chunk transcripts, individual modality scores ($s_a, s_t, s_c$), calibrated fused risk, and processing latencies.
    - Dynamic alert badges and audible bilingual speech advisories reflect real-time threat level transitions.
+
+---
+
+## 8. Evaluation & Hardening Architecture (Phase 9)
+
+```
++-----------------------------------------------------------------------------------+
+| EVALUATION & HARDENING PIPELINE (Phase 9)                                         |
+|                                                                                   |
+|  +-----------------------------------------------------------------------------+  |
+|  | 30-Case Multi-Lingual Evaluation Corpus (Scams, Benign, Clones, Edge Cases) |  |
+|  +-----------------------------------------------------------------------------+  |
+|         |                                 |                             |         |
+|         v (Degraded Audio)                v (Adversarial Text)          v (Nonces)|
+|  +--------------------+         +-------------------+         +-----------------+ |
+|  | Telephony Codec    |         | Multilingual      |         | Directional Key | |
+|  | Simulator (G.711)  |         | Lexicon (6 Cats)  |         | Derivation/TOTP | |
+|  +--------------------+         +-------------------+         +-----------------+ |
+|         |                                 |                             |         |
+|         v (s_a: Acoustic)                 v (s_t: Semantic)             v         |
+|  +--------------------------------------------------+         +-----------------+ |
+|  | Multimodal Logistic Fusion with Critical Overrides|         | Cryptographic   | |
+|  | (Fail-Safe: s_a >= 0.70 or s_t >= 0.70 -> RED)   |         | Gateway (Replay)| |
+|  +--------------------------------------------------+         +-----------------+ |
+|         |                                                               |         |
+|         v                                                               v         |
+|  +-----------------------------------------------------------------------------+  |
+|  | Evaluation Harness: Empirical Confusion Matrix, Precision, Recall, Latency  |  |
+|  +-----------------------------------------------------------------------------+  |
+|         |                                                                         |
+|         v                                                                         |
+|  +-----------------------------------------------------------------------------+  |
+|  | Automated Rule 7 Privacy Audit (Zero Disk Writes, Structured Log Sanitizer) |  |
+|  +-----------------------------------------------------------------------------+  |
++-----------------------------------------------------------------------------------+
+```
+
+### 8.1 Zero-Disk Privacy Audit Engine (`tests/test_privacy_security_audit.py`)
+1. **Rule 7 Invariant**: Under no circumstance are raw audio bytes or conversation transcripts stored on disk.
+2. **Filesystem Watchdog**: Intercepts directory states in system temp and workspace roots across continuous high-volume streaming sessions, verifying zero audio/text file creations.
+3. **Structured Logger Scrubbing**: Redacts sensitive keywords (`audio`, `pcm`, `transcript`, `secret`, `totp`, `phone`) automatically before serialization.
+
+### 8.2 Adversarial Penetration Testing (`tests/test_redteam.py`)
+1. **Semantic Evasion**: Tests conversational dilution, polite extortion, and code-mixed Hindi/English phrases across all 6 threat categories.
+2. **Acoustic Camouflage**: Tests vocoder voice clone artifacts through G.711 carrier telephony degradation.
+3. **Fail-Safe Overrides**: Enforces that benign conversational text can never suppress acoustic clone detection ($s_a \ge 0.70 \to \text{RED}$), and natural voice acoustics can never suppress catastrophic extortion ($s_t \ge 0.70 \to \text{RED}$).
+
+### 8.3 Hardening & Fault Tolerance (`tests/test_hardening_recovery.py`)
+1. **Backpressure Memory Protection**: Enforces circular buffer truncation when backpressure exceeds 12.0 seconds, bounding RAM consumption.
+2. **Malformed Payload Resilience**: Tolerates odd-byte PCM truncation, DC offsets, and full clipping without floating-point overflow.
+3. **Orphaned Session Reclamation**: Immediate teardown of session tokens and chunker states upon abrupt client socket disconnect.
