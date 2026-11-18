@@ -199,10 +199,15 @@ class AcousticArtifactDetector:
 
         # 2. Unnatural ZCR flatness (lack of dynamic phonetic transitions)
         # Human speech exhibits high ZCR variance between vowels and consonants.
-        if feats.zcr_variance < 0.0025:
+        # Under 8kHz carrier telephony, high frequencies (>3.4kHz) are filtered out,
+        # so ZCR variance naturally scales lower.
+        flatness_threshold = 0.0012 if feats.telephony_signature else 0.0025
+        mild_threshold = 0.0025 if feats.telephony_signature else 0.0050
+
+        if feats.zcr_variance < flatness_threshold:
             spoof_prob += 0.35
             artifacts.append("robotic_zcr_flatness")
-        elif feats.zcr_variance < 0.0050:
+        elif feats.zcr_variance < mild_threshold:
             spoof_prob += 0.15
             artifacts.append("low_phonetic_variance")
 
