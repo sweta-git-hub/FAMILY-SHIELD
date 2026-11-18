@@ -365,6 +365,21 @@
 - **Tests**: `python -m unittest discover tests` -> 110/110 tests passing in 1.82s.
 - **Next**: Implement comprehensive red-team test suite in Commit 2 (`tests/test_redteam.py`).
 
+### p9-redteam | test(redteam): implement comprehensive adversarial scam, deepfake, and fusion override tests | phase/09-eval-hardening
+- **Built**:
+  - `tests/test_redteam.py`: 15 comprehensive adversarial tests covering:
+    - Semantic lexicon evasion across all 6 threat categories in English, Hindi, and Hinglish.
+    - Compound multi-tactic extortion and dilution/camouflage attacks.
+    - Synthetic voice clone detection under G.711 carrier telephony degradation.
+    - Spliced voice and vocoder tone attacks.
+    - Multimodal fusion override attacks (benign speech cloaking voice clone, natural voice cloaking extortion).
+    - Cryptographic attacks (replay attacks, stale nonces, directional key inversion $A \to B \neq B \to A$, 3-strike brute-force lockout).
+    - Covert duress alerts and emergency action URI generation.
+- **Why**: Validate system robustness against real-world adversarial evasion attempts.
+- **Decision**: Test both individual modalities and end-to-end fail-safe overrides.
+- **Tests**: `python -m unittest tests/test_redteam.py` -> 15/15 passing in 0.17s.
+- **Next**: Implement privacy and security audit test suite in Commit 3 (`tests/test_privacy_security_audit.py`).
+
 
 
 
