@@ -14,6 +14,8 @@ RUN pip install --no-cache-dir -r /app/requirements.txt
 # Copy application source
 COPY server/ /app/server/
 COPY core/ /app/core/
+COPY ml/ /app/ml/
+COPY demo/ /app/demo/
 
 # Create non-root execution user
 RUN useradd -m -u 1000 fvsuser && chown -R fvsuser:fvsuser /app
